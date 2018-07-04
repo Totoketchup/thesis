@@ -80,37 +80,38 @@ Finally, I would like to express my profound gratitude to all my familly for all
 \nocite{*}
 
 \section{Multi-Speaker Separation Problem}
-In 1953, Colin Cheery called the capacity of human beings to separated many voices in a conversation the \textit{cocktail party problem}. We know that humans are very good at separating voices or other sounds from a noisy environment by focusing their attention to a particular chosen target. In this study, we focus our attention on the multi speaker separation problem consisting in separating from a single channel a mixture of speakers with different genders. 
+In 1953, Colin Cheery called the capacity of human beings to separate many voices in a conversation the \textit{cocktail party problem}. We know that humans are very good at separating voices or other sounds from a noisy environment by focusing their attention to a particular chosen target. In this study, we focus our attention on the multi speaker separation problem consisting in separating from a \textbf{single channel} a mixture of speakers with different genders. 
 
-More generally, the source separation problem can be very useful in domains like automatic speech recognition, speech enhancement for hearing aids or  
-in music tracks separation.
+More generally, the source separation problem can be very useful in domains like automatic speech recognition, speech enhancement for hearing aids or in music tracks separation.
 
 %The main difference between Computer Vision problem is the that images are fixed objects in time whereas audio is a signal changing in time, therefore, representing a audio signal in [MEDIUM ARTICLE  HERE]
 
 One challenge in the source separation problem is called the '\textit{permutation problem',} that is happening when segmentation is used to separate the sources without having knowledge of the separated sources, therefore we do not know which partition belong to which source. This is a problem when chunking the input in order to process it in a separating model, the first chunk will output a certain order for the separation but it is not assured that next chunks will be outputted in the same order. We will discuss later in this study about how new deep learning architectures are solving this problem.
 
-The advantage brought by Deep Clustering method is based on a partition-based segmentation where the labels od the partitions are learn in opposition of the class-based segmentation where the labels of the segmented objects are learned. This approach allows to generalize to unknown speakers. Deep Clustering method uses these mebddings to apply clustering algorithm on them and then assign labels to each partitions. These learned partitions are used to create masks for input spectrograms and separate each voice.
+In this study, we only focus on the \textbf{single channel separation problem} but multi-channel audio separation is as well a very active area that has shown to produce even better results than using a unique channel. Today's deep learning methods, such as Deep Clustering \cite{DPCLV1, DPCLV2} can achieve quite good results in the multi speaker separation problem for 2 different genders speakers mixtures in terms of SDR improvements but are still not obtaining as successful results for \textbf{speakers of the same gender} or for a mixture of more than 2 speakers. 
 
-In this study, we only focus on \textbf{single channel separation problem} but multi-channel audio separation is still a very active topic and DANet has shown to have very good results on such tasks using beamforming and multiple models [ref]. Today's deep learning methods in the multi speaker separation problem  can achieve quite good resuls for a 2 speakers of with different genders in terms of SDR improvements but are not obtaining as successful results for speakers of the same gender or for a mixture of more than 2 speakers. 
+The main advantage brought by Deep Clustering \cite{DPCLV1} method is that it is a partition-based segmentation where the labels of the partitions are learned in opposition of a class-based segmentation where the labels of the segmented sources are learned. This approach allows to generalize very well to unknown speakers because it does not learn '\textit{who}' is speaking but how to differentiate each speaker without the '\textit{who}' information. Deep Clustering method produces discriminative embeddings from spectrogram magnitudes to apply clustering algorithm on them and then assign labels to each partitions. These learned partitions are used to create masks for the input spectrograms and separate each voice.
 
-Our study is in part based on \cite{Adaptive}, which is showing that using an end-to-end autoencoder architecture instead of spectrograms can lead to better SDR improvement for the source separation problem but this study is limited in terms of number of separated speakers and generalization error. We suppose that a similar architecture compatible with current state of the art deep learning methods can lead to better results. Secondly, we consider
+In this study we intend to improve the performances of current state of the art methods regarding same gender mixtures.
 
+Firstly, this study is in part based on \cite{Adaptive} which shows that using an end-to-end autoencoder architecture on raw audio mixture for the source separation problem instead of Discrete Cosine Transform spectrograms can lead to better SDR improvement but this study is limited in terms of number of separated speakers, deep neural network complexity and generalization error. We suppose that a similar architecture, compatible with current state of the art deep learning methods and replacing the use of spectrograms, can lead to better results. In addition, we suppose that one problem with the use of spectrograms is that for a mixture of speakers with the same gender it is more likely that frequencies overlapping occurs, and thus separating information becomes more challenging. The architecture we propose to replace the use of spectrogramw tries to decrease this overlapping problem and thus intends to increase performances with mixtures of the same gender. 
 
+Secondly, we consider another approach named Source Contrastive Estimation (SCE) \cite{SCE} that is based on the same principles than Deep Clustering and has shown to have better results. Indeed, since SCE method delivers better SDR improvement than the first version of Deep Clustering \cite{DPCLV1} and since the methods used in its second version \cite{DPCLV2} can be applied to any other methods, we presume that applying such improvements to SCE can lead to an enhancement of its performances.
 
 
 \section{Contributions}
 \label{contrib}
 
-In our work we are adressing the multi speaker separation problem with two main approaches. 
+In our work we are adressing the improvement of the multi speaker separation problem with two main approaches:
 
-Firstly, we propose a sparse autoencoder architecture to replace the use of spectrogram and lower the overlapping in the usual representation. We show that such an architecture can improve the performances for 2 speakers mixtures but creating such an architecture for a mixture of 3 speakers is more challenging.
+Firstly, we propose a sparse autoencoder architecture to replace the use of spectrogram and lower the overlapping in the usual representation. We show that this neural network can improve the performances for 2 speakers mixtures but creating such an architecture for a mixture of 3 speakers is more challenging.
 
-Secondly and in parallel, we improve the Source Contrastive Estimation method using different techniques brought by the second version of Deep Clustering \cite{DPCLV2}. Indeed, SCE has shown to deliver better SDR improvement than the first version of Deep Clustering \cite{DPCLV1} and the methods used in its second version can be applied to any other methods. In addition, we try new regularization techniques for SCE such as Negative Sampling or combining it with the DANet method. We show all these combinations can lead to significant improvements of the SCE method.
+Secondly and in parallel, we improve the Source Contrastive Estimation method using different techniques brought by the second version of Deep Clustering \cite{DPCLV2}. In addition, we try new regularization techniques for SCE such as Negative Sampling or combining it with the DANet \cite{DANet} method. We show that all these combinations can lead to significant improvements of the SCE method.
 
 \chapter{Background}
-\section{Short Time Fourier Transform - STFT}
+\section{Short Time Fourier Transform (STFT)}
 
-Short-Time Fourier Transform has played a significant role in signal processing research and has been broadly used in many applications involving sounds analysis.
+Short-Time Fourier Transform (STFT) has played a significant role in signal processing research and has been broadly used in many applications involving sounds analysis.
 This transformation on a signal is obtained by applying the Fourier Transform along it on a fixed-sized window and moving it along with some overlapping. This operation converts this signal that has frequency changes over time into a time-frequency domain that can be more understable for analysis than its original 1-dimensional representation.
 The STFT of a signal $x$ at the frame $t$ and frequency $f$, named the \textit{TF-bin}, is defined as follow:
 \[
@@ -619,7 +620,9 @@ To tackle this problem, we propose to use \textit{Negative Sampling} method in o
 
 In our case, the general approach consists in selecting, for a $(t,f)$ bin, $v_o^{(k)}, k \in 1,\dotsc,K$ speaker vectors different from the dominant speaker vector $v_{o_{+}}(t,f)$ at this specific bin. In other words, $v_o^{(k)} \in V_o^-(t,f) = V_o/_{v_o^+(t,f)}$, and we define $\mathfrak{B}(t,f) = \{v_o^{(k)}, k \in 1,\dotsc,K\}$ the $K$ sampled vectors at a $(t,f)$ bin. We define the new loss function applying Negative Sampling for SCE as follow:
 
-\[L_\theta(x)_{NS} = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(Y_{t,f}^{(s)} \cdot v_i(t,f)^{T} v_o^{(s)}) - \beta \frac{1}{K} \sum_{t,f} \sum_{v_o^{(s)} \in \mathfrak{B}(t,f)} \log \sigma(- v_i(t,f)^{T} v_o^{(s)}) \]
+%\[L_\theta(x)_{NS} = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(Y_{t,f}^{(s)} \cdot v_i(t,f)^{T} v_o^{(s)}) - \beta \frac{1}{K} \sum_{t,f} \sum_{v_o^{(s)} \in \mathfrak{B}(t,f)} \log \sigma(- v_i(t,f)^{T} v_o^{(s)}) \]
+
+\[L_{NS}(\theta) = L_{SCE}(\theta) - \beta \frac{1}{K} \sum_{t,f} \sum_{v_o^{(s)} \in \mathfrak{B}(t,f)} \log \sigma(- v_i(t,f)^{T} v_o^{(s)}) \]
 
 The first term corresponds to the objective function defined in [CITE] and the second one the added Negative Sampling. In this term $Y_{t,f}^{(s)} = -1$ since we want the $K$ selected vectors to be \textit{pushed away} from the dominant speaker vector, and this is apply for each $v_i(t,f)$ embeddings. The negative sampling term is multiplied by a coefficient $\beta \in[0,1]$ in order to give priority to the first term since it is the main objective function. Indeed, these two members have both the same magnitude: for instance, choosing $\beta = 1$ would lead to an equivalence in terms of influence for the SCE loss and Negative Sampling loss, and thus, the network would struggle learning the constrast between each speaker vectors because the Negative Sampling term would add too much noisy information to the SCE loss. 
 
@@ -968,7 +971,7 @@ Adam $1e^{-3}$ & 0.2 & 7.55 & \textbf{15.67} & 10.11 & 18.89 & - & - \\
 
 \section{Source Contrastive Estimation improvements}
 
-In this section, we analyze the performances of the contributions mentioned previously. All long we compare the results using spectrograms with the use of the Adaptive Layer. The Adaptive layer is plugged to the SCE network the same way as in [REF].
+In this section, we analyze the performances of the contributions previously mentioned. All along, we compare the results using spectrograms with the use of the Adaptive Layer. The Adaptive layer is plugged to the SCE network the same way as in [REF].
 First we observe the influence of not considering silent bins, different architecture and network regularization. Secondly, we analyze the performances of the soft k-means approach compared to the hard one. In the third section, we apply negative sampling for a mixture of male and female speakers
 And finally, we apply finetuning to the whole network.
 
