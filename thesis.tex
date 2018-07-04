@@ -1,9 +1,12 @@
-\documentclass[master,final,11pt]{iscs-thesis}
+\documentclass[master, tikz, final,11pt, dvipdfmx]{iscs-thesis}
+
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{caption}
 \usepackage{lipsum}
 \usepackage{subcaption}
+\usepackage{graphicx}
+\graphicspath{ {./figures/} }
 \usepackage[table]{xcolor}
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
 \usepackage[utf8]{inputenc}
@@ -18,6 +21,8 @@
 }
 \hypersetup{linktocpage}
 \usepackage{multirow}
+\usepackage{tikz}
+\usetikzlibrary{matrix,chains,intersections,positioning,decorations.pathreplacing,arrows,shapes, arrows, calc}
 
 %\usepackage[T1]{fontenc}
 
@@ -53,11 +58,11 @@ In this study, we compare the SDR improvements with and without the adaptive lay
 
 \begin{acknowledge}
 
-Firstly, I would like to express my gratitude to my supervisor Hiroshi Imai for his support and wise advice all along this thesis, in addition, I would like to deeply thank Hidefumi Hiraishi who helped me a lot over these years. I would also like to thank Doctor Yoshizoe of RIKEN AIP for all his feedback and support, and for accepting me in his unit as a trainee and allowing me to use RAIDEN computer without which I would not have been able to realize all this work.
+Firstly, I would like to express my gratitude to my supervisor Hiroshi Imai for his support and wise advice all along this thesis, in addition, I would like to deeply thank Hidefumi Hiraishi and Naoto Ohsaka who helped me a lot over these years. I would also like to thank Doctor Yoshizoe of RIKEN AIP for all his feedback and support, and for accepting me in his unit as a trainee and allowing me to use RAIDEN computer without which I would not have been able to realize all this work.
 
 Secondly, I would like to especially thank Natalia Jarzebska and Dea Luma for all their support throughout these 2 years and a half in Japan, having them by my side was a huge source of motivation and inspiration. Thank you for all your advice, for having listened to me, and for all the amazing moments we spent together, I will never forget everything you did for me.
 
-Finally, I would like to express my profound gratitude to all my familly for all their support all over these years, even with the distance they continued to be by my side and encouraging me to do my best.
+Finally, I would like to express my profound gratitude to all my familly for all their support all over these years, even with the distance they continued to always be by my side and encouraging me to do my best.
 
 \end{acknowledge}
 
@@ -76,14 +81,12 @@ Finally, I would like to express my profound gratitude to all my familly for all
 
 \chapter{Introduction}
 
-\nocite{*}
+%\nocite{*}
 
 \section{Multi-Speaker Separation Problem}
 In 1953, Colin Cheery called the capacity of human beings to separate many voices in a conversation the \textit{cocktail party problem}. We know that humans are very good at separating voices or other sounds from a noisy environment by focusing their attention to a particular chosen target. In this study, we focus our attention on the multi speaker separation problem consisting in separating from a \textbf{single channel} a mixture of speakers with different genders. 
 
 More generally, the source separation problem can be very useful in domains like automatic speech recognition, speech enhancement for hearing aids or in music tracks separation.
-
-%The main difference between Computer Vision problem is the that images are fixed objects in time whereas audio is a signal changing in time, therefore, representing a audio signal in [MEDIUM ARTICLE  HERE]
 
 One challenge in the source separation problem is called the '\textit{permutation problem',} that is happening when segmentation is used to separate the sources without having knowledge of the separated sources, therefore we do not know which partition belong to which source. This is a problem when chunking the input in order to process it in a separating model, the first chunk will output a certain order for the separation but it is not assured that next chunks will be outputted in the same order. We will discuss later in this study about how new deep learning architectures are solving this problem.
 
@@ -108,23 +111,32 @@ Firstly, we propose a sparse autoencoder architecture to replace the use of spec
 Secondly and in parallel, we improve the Source Contrastive Estimation method using different techniques brought by the second version of Deep Clustering \cite{DPCLV2}. In addition, we try new regularization techniques for SCE such as Negative Sampling or combining it with the DANet \cite{DANet} method. We show that all these combinations can lead to significant improvements of the SCE method.
 
 \chapter{Background}
-\section{Short Time Fourier Transform (STFT)}
+\section{The Short Time Fourier Transform (STFT)}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{xmix}
+\caption{Spectrogram of a 2 speakers mixture using the square root of the Hann function as window of size 256 and a hop size of 64. The length of the audio signal used is of 26368 frames ($\simeq 3.3$ seconds),and in this case $F = 129$ and $T = 409$.}
+\label{fig:spectrogram} 
+\end{figure}
+
 
 Short-Time Fourier Transform (STFT) has played a significant role in signal processing research and has been broadly used in many applications involving sounds analysis.
 This transformation on a signal is obtained by applying the Fourier Transform along it on a fixed-sized window and moving it along with some overlapping. This operation converts this signal that has frequency changes over time into a time-frequency domain that can be more understable for analysis than its original 1-dimensional representation.
 The STFT of a signal $x$ at the frame $t$ and frequency $f$, named the \textit{TF-bin}, is defined as follow:
 \[
-	STFT\{x\}(t,f) = X(t,f) = \sum_{n=-\infty}^{n=+\infty}x[n]w[t-mh]e^{-jf\frac{2\pi}{N}t }
+	STFT\{x\}(t,f) = X(t,f) = \sum_{n=-\infty}^{n=+\infty}x[n]w[t-mh]e^{-jf\frac{2\pi}{N}t } \in \mathbb{C}^{T\times F}
 \]
 
-Here, $f$ designates the frequency index, $t$ is the frame center and $h$ the hop size. The \textit{analysis window} used for the tranformation is $w$ and is of size $N$. The most commonly used analysis windows are the Hann and Hamming windows. TODO
-
-The STFT of a signal $x$ can be seen as a complex matrix $X \in \mathbb{C}^{T\times F}$ ($T$ representing the time axis and and $F$ the frequency axis). This matrix can be decomposed as follow:
+Here, $f$ designates the frequency index, $t$ is the frame center and $h$ the hop size. The \textit{analysis window} used for the tranformation is $w$ and is of size $N$. The most commonly used analysis windows are the Hann and Hamming windows.
+The STFT of a signal $x$ can be seen as a complex matrix $X \in \mathbb{C}^{T\times F}$ ($T$ representing the time axis and and $F$ the frequency axis) that can be decomposed as follow:
 
 \[
 	STFT\{x\} = X = |X|\exp^{j\phi}
 \]
-In this decomposition, $|X|$ represents the STFT magnitude and $\phi$ its phase. In audio analysis, what is called the \textit{spectrogram} of an audio signal is the squared magnitude of the computed Short-Time Fourier Transform, Figure [Cite figure] represents the spectrogram of an audio signal from a speech. Its formula is defined as follow:
+
+In this decomposition, $|X|$ represents the STFT magnitude and $\phi$ its phase. In audio analysis, what is called the \textit{\textbf{spectrogram}} \autoref{fig:spectrogram} of an audio signal is the squared magnitude of the computed Short-Time Fourier Transform, Figure [Cite figure] represents the spectrogram of an audio signal from a speech. Its formula is defined as follow:
+
 \[
 	spectrogram\{x\}(t,f) =  |X(t,f)|^2
 \]
@@ -135,27 +147,22 @@ In this study, we consider a mixture of $M$ speakers ,with the same or of a diff
 x = \sum_{i=0}^{M} x_i
 \]
 
-Here, $x$ is name the \textit{mixture signal} and each $x_i$ are the \textit{original speeches}. Since the STFT is a linear operation, applying it on a mixture leads to:
+Here, $x$ is named the \textit{\textbf{mixture}} and each $x_i$ are the \textit{\textbf{original sources}}. Since the STFT is a linear operation, applying it on the mixture leads to:
 
 \[
-	STFT\{x\} = X = \sum_{i=0}^{M} X_i =STFT\{\sum_{i=0}^{M} x_i\}
+	STFT\{x\} = X = \sum_{i=0}^{M} X_i =\sum_{i=0}^{M} STFT\{x_i\}
 \]
 
-TODO
+Since complex numbers are difficult to handle in audio processing, the phase is most of the time discarded and only the magnitude is used. Even if some information might be lost by discarding the phase, studies \cite{stft} have shown that for small window size (20 - 40ms) most of the information is contained in the STFT magnitude. It has been as well shown that, even if the absolute value is taken into account, the additivity approximately holds regarding and thus that: $|X| \simeq \sum_{i=0}^{M} |X_i|$. This property and the non-negativity of spectrograms lead to the use of masks in order to perform source separation.
 
-And for the magnitude value it is inferred that
-
-\[
-|X| \simeq \sum_{i=0}^{M} |X_i|
-\]
 
 \section{Spectrogram Masking}
 
-Masking is a technique broadly used for speech denoising or source separation. It consists in applying a matrix $m \in R^{T \times F}$ for the speech enhancement (since in this case it is only desired to separate noise from one specific source) or $m^{T \times F \times M}$ separating $M$ sources from the mixture. Since the STFT representation for audio signals is sparse, it is likely that a specific source is dominant at a particular bin in terms of energy. This motivated the use of \textit{masks} in order to separate sources from an unique spectrogram.
+Masking is a technique broadly used for speech denoising or source separation. It consists in applying element-wisely a matrix $m^{T \times F \times M}$ to separate $M$ sources from the mixture or $m \in R^{T \times F}$ for the speech enhancement case since it is only desired to separate noise from one specific source. Since the STFT representation for audio signals is sparse, it is likely that a specific source is dominant at a particular bin in terms of energy. This property and the non-negativity of the STFT magnitude motivated the use of masks in order to separate sources from an unique spectrogram.
 
-The ideal binary mask $IBM(t,f)_i$, mask at a $(t,f)$ bin for the $i^{th}$ speaker, for multi source separation is defined as:
+The \textit{\textbf{ideal binary mask}} $IBM(t,f)_i$ applied at a $(t,f)$ bin for the $i^{th}$ speaker is defined as:
 \[
-IBM(t,f)_i = \left\{
+m^{ibm}_i(t,f) = IBM(t,f)_i = \left\{
     \begin{array}{ll}
         1 & \mbox{if } |X(t,f)_i| > max_{j \neq i} |X(t,f)_j \\
         0 & \mbox{else}
@@ -163,24 +170,139 @@ IBM(t,f)_i = \left\{
 \right.
 \]
 
-The ideal binary mask can be seen as a matrix $m^{ibm} \in R^{T\times F \times M}$ where an element at at $(t,f,i)$ is to $1$ for the $i^{th}$ speaker is dominant compared to the others and $0$ otherwise. \cite{IBM} shows that IBM can be very efficient for separating sources but highly depends on the STFT window size, and this optimal can vary according to the source type and task.
+The ideal binary mask can be seen as a matrix $m^{ibm} \in R^{T\times F \times M}$ where an element at $(t,f,i)$ is set to $1$ for the $i^{th}$ speaker if this latter is dominant compared to the others and $0$ otherwise. In \cite{IBM}, it is shown that IBM can be very efficient for separating sources but highly depends on the STFT window size, and this optimal can vary according to the source type and task.
 
-Another popular filter is the Wiener-like filter, which generally leads to better SDR since it is a softer masks of which values lands in [0,1]. The Wiener-like filter is defined as:
+Another popular mask is the \textit{\textbf{Wiener-like filter}}, which generally leads to better Signal to Distortion Ratio (SDR) since it is a softer masks of which values lands in [0,1]. The Wiener-like filter is defined as:
 \[
-m^{wf}_i = \frac{|X_i|^2}{\sum_j{|X_j|}} 
+m^{wf}_i = \frac{|X_i|^2}{\sum_j{|X_j|^2}} 
 \]
 
-\textbf{Images of binary mask and wiener mask + reconstruction TODO}
-In the result section [CITE] we compare our results with the binary masks and wf masks.
+We show the difference between binary and Wiener-like masks in \autoref{fig:masking}.
+In the result section \ref{res} we compare our results with the Wiener-like filters.
+
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{0.9\textwidth}
+\includegraphics[width=\textwidth]{xnonmix1}
+\caption{Spectrogram of the $1^{st}$ speaker from \ref{fig:spectrogram}}
+\label{fig:nonmix1} 
+\end{subfigure}
+\\
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{ibm1}
+\captionsetup{justification=centering}
+\caption{Binary mask extracting the  $1^{st}$ speaker}
+\label{fig:ibm1} 
+\end{subfigure}
+~
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{sepibm1}
+\captionsetup{justification=centering}
+\caption{Reconstruction using the binary mask}
+\label{fig:ibmsep1} 
+\end{subfigure}
+\\
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{wf1}
+\captionsetup{justification=centering}
+\caption{Wiener-like mask extracting the  $1^{st}$ speaker}
+\label{fig:wf1} 
+\end{subfigure}
+~
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{sepwf1}
+\captionsetup{justification=centering}
+\caption{Reconstruction using the Wiener-like mask}
+\label{fig:ibmsep1} 
+\end{subfigure}
+\captionsetup{justification=centering}
+\caption{Comparison between binary masks and Wiener-like masks. As mentioned, we can see that using Wiener-like (\autoref{fig:wf1}) that are softer than binary masks (\autoref{fig:ibm1}) is leading to a better reconstruction}
+\label{fig:masking} 
+
+\end{figure}
 
 \section{Deep Learning}
 
-Deep Learning \cite{DL, DLBOOK} has seen an explosion of interest these last years and is now applied in many fields in machine learning such as classification, clustering, generation or prediction. In this section we present basic deep learning concepts such as Feed Forward Networks (FFN), Convolutional Neural Networks (CNN) and Recurrent Neural Networks. Furthermore, we explain more complex structures that we encounter in this study like Bidirectional Long Short Term Memory (BLSTM) cells and Sparse AutoEncoder.
+Deep Learning \cite{DL, DLBOOK} has seen an explosion of interest these last years and is now applied in many fields in machine learning such as classification, clustering, generation or prediction. In this section we present basic deep learning concepts such as Feed Forward Networks (FFN), Convolutional Neural Networks (CNN) and Recurrent Neural Networks. Furthermore, we explain more complex structures that we encounter in this study like Bidirectional Long Short Term Memory (BLSTM) cells and sparse autoencoder.
 
 \subsection{Feed Forward Networks}
 
+\begin{figure}[!hb]
+
+\centering
+\begin{tikzpicture}
+
+[   cnode/.style={draw=black,minimum width=10mm, circle}, ]
+    \node at (0,-4) {$\vdots$};
+    \node at (4,-3.3) {$\vdots$};
+    \node at (8,-3.2) {$\vdots$};
+    \node at (0,-6) {Input layer};
+    \node at (4,-6) {Hidden layer};
+    \node at (8,-6) {Output layer};
+    \foreach \x in {1,...,4}
+    {   
+    \pgfmathparse{\x<4 ? \x : "n"}
+        \node[draw=black, minimum width=6mm, circle, fill={rgb:orange,1;yellow,2;pink,5},label=180:$x_{\pgfmathresult}$] (x-\x) at (0,{-\x-div(\x,4)}) {};
+        
+	
+	 \foreach \x in {1,...,3}
+    {
+    \pgfmathparse{\x<3 ? \x : "m"}
+        
+        \node[draw=black, minimum width=6mm, circle,fill={rgb:red,1;green,4;blue,0.5},label=90:$h_{\pgfmathresult}$] 	(p-\x) at (4,{-0.1-1.2*\x-div(\x,3)}) {};
+    }
+    
+    \foreach \x in {1,...,3}
+    {
+    \pgfmathparse{\x<3 ? \x : "l"}
+        
+        \node[draw=black, minimum width=6mm, circle,fill={rgb:red,4;green,1;blue,0},label=0:$o_{\pgfmathresult}$] 	(o-\x) at (8,{-0.8-0.8*\x-div(\x,3)}) {};
+    }
+    
+    
+    }   
+    
+    
+    
+    \foreach \x in {1}
+    {   \foreach \y in {1,...,3}
+        {   
+          \pgfmathparse{\y<3 ? \y : "m"}
+        \draw (x-\x)-- node[above,sloped,pos=0.4] {$\omega_{\x , \pgfmathresult}$} (p-\y);
+        }
+    } 
+    
+    \foreach \x in {2,...,3}
+    {   \foreach \y in {1,...,3}
+        {   \draw (x-\x) -- (p-\y);
+        }
+    }
+    
+    \foreach \x in {4}
+    {   \foreach \y in {1,...,3}
+        {   
+        \pgfmathparse{\y<3 ? \y : "m"}        
+        \draw (x-\x) -- node[above,sloped,pos=0.5] {$\omega_{n , \pgfmathresult}$} (p-\y);
+        }
+    }
+    
+    \foreach \x in {1,...,3}
+    {   \foreach \y in {1,...,3}
+        {   \draw[dashed] (p-\x) -- (o-\y);
+%            \draw[line width=2] (p-\x) to node (midf) [pos=.3, fill=white, minimum width = .8cm] {} (o-\y);
+%            \draw[dot diameter = 2pt, dot spacing = .3cm, dots] (midf.east) to (midf.west);
+        }
+    }
+    
+    
+\end{tikzpicture}
+\caption{Example of a fully connected neural network with several hidden layers}
+\label{fig:ann}
+\end{figure}
+
 Artificial Neural Networks (ANN) are based on the biological observation of human brain and how actual neurons networks are working. A human brain contains approximately 100 billions neurons that are connected to each other, studies say that an neuron has in average around 50000 connections with other neurons. They are connected to each other by what is called the \textit{synapses}.
-Articial neurons are mimicking the process of biological neurons in two main steps: firstly, they take in input many other artificial neurons outputs and magnify it with a certain \textit{weight}, secondly, depending on the outcome of this operation an activation function will determine how much of this output must be outputted to other neurons it is connected to. This process is explained in Figure [CITE] and can be formulated as:
+Articial neurons are mimicking the process of biological neurons in two main steps: firstly, they take in input many other artificial neurons outputs and magnify it with a certain \textit{weight}, secondly, depending on the outcome of this operation an activation function will determine how much of this output must be outputted to other neurons it is connected to. This process is explained in \autoref{fig:ann} and can be formulated as:
 
 
 \[
@@ -211,16 +333,23 @@ The new commonly used activation functions are the Rectified Linear Unit (ReLU),
 
 \subsection{Convolutional Neural Networks}
 
-Convolutional Neural Networks (CNN or ConvNet) \cite{unpool,CNNrecent} are networks made from the same artificial neurons presented previously, but do not apply the same operations as fully connected networks.
+
+\begin{figure}[!h]
+
+\includegraphics[width=\textwidth]{lenet}
+
+	\caption[Architecture of a traditional convolutional neural network.]{LeNet-5 convolutional network architecture introduced by Y. LeCun . In this figure, we see that CNN are made of an alternation between convolutional operations (with a non linear activation function applied) and subsampling operations. This architecture was used on digits recognition}
+	\label{fig:cnn}
+\end{figure}
+
+
+Convolutional Neural Networks (CNN or ConvNet) \cite{unpool,CNNrecent} (\autoref{fig:cnn}) are networks made from the same artificial neurons presented previously, but do not apply the same operations as fully connected networks.
 The interest for CNNs increased a lot after AlexNet deep learning architecture won the ILSVRC competition in 2012 using this convolutional networks and improved previous state of the art method by almost 11\%. From then, deeper and more complex CNN networks have been built and constantly improving their accuracy.
 The main difference with fully connected networks is that, as its name suggests, CNN are using convolutional operations with \textit{filters/kernels} along their inputs in order to create a \textit{feature map/receptive field}.
 
 Image analysis begins to be difficult to use with fully connected networks because for $256x256$ images for instance, the input has to be flatten and as a result the number of weights in the networks becomes very large. In CNN this problem is solved using filters that are shared across the receptive field, and thus considerably decreasing the number of weights used in the architecture.
 
 Today's common CNN architectures used for image analysis for exemple are made of blocks computing the following operations: first, a \textbf{convolution} operation is applied on the input with several filters on each channel of the input (RGB images have 3 channels) TODO
-
-\textbf{[Formula + image]
-}
 
 \textbf{Active research in CNN , interpretability 
 }
@@ -235,7 +364,48 @@ In our study, with the Adaptive layer [CITE] we use one-dimensional convolution 
 Compared to vanilla feed forward networks, recurrent neural networks (RNN) are ANNs with recurrent connections, they are made of hidden states evolving in a non-linear dynamic way and
 are mostly used with sequential learning.
 
-\textbf{Figure}
+\begin{figure}
+\centering
+\begin{tikzpicture}
+
+[   cnode/.style={draw=black, circle}, ]
+    
+    \node[draw=black, minimum width=6mm, circle, fill={rgb:red,4;green,1;blue,0},label=90:$y$] (y) at (0,2) {};
+    
+    \node[draw=black, minimum width=6mm, circle, fill={rgb:red,1;green,4;blue,0.5},label=0:$h$] (h) at (0,0) {};
+ 
+    \node[draw=black, minimum width=6mm, circle, fill={rgb:orange,1;yellow,2;pink,5},label=270:$x$] (x) at (0,-2) {};
+    
+    \draw[->,>=stealth] (x) -- node[left,pos=0.4] {$W_{xh}$} (h);
+    \draw[->,>=stealth] (h) -- node[left,pos=0.5] {$W_{hy}$} (y);
+    \path (h) edge [loop left] node[left,pos=0.5] {$W_{h}$} (h);
+    
+    \node[single arrow,draw=black,fill=black!10,minimum height=1cm,shape border rotate=0,label={[label distance=0.4cm]270:unroll}] at (1.5,0) {};
+
+\foreach \x in {0,...,2}
+{
+ \pgfmathparse{\x<2 ? \x : "n"}  \let\index\pgfmathresult
+ \pgfmathparse{\x<2 ? 0 : 0.5}  \let\jump\pgfmathresult
+
+   
+    \node[draw=black, minimum width=6mm, circle, fill={rgb:red,4;green,1;blue,0},label=90:$y_\index$] (y\x) at (3+\jump +1.5*\x,2) {};
+    
+    \node[draw=black, minimum width=6mm, circle, fill={rgb:red,1;green,4;blue,0.5}] (h\x) at (3+\jump +1.5*\x,0) {};
+ 
+    \node[draw=black, minimum width=6mm, circle, fill={rgb:orange,1;yellow,2;pink,5},label=270:$x_\index$] (x\x) at (3+\jump+1.5*\x,-2) {};
+    
+    \draw[->,>=stealth] (x\x) -- node[left,pos=0.5] {$W_{xh}$} (h\x);
+    \draw[->,>=stealth] (h\x) -- node[left,pos=0.5] {$W_{hy}$} (y\x);
+
+}
+    
+    \draw[->,>=stealth] (h0) -- node[above,sloped,pos=0.4] {$W_h$} (h1);
+    \draw[->,>=stealth, dashed] (h1) -- node[above,sloped,pos=0.3] {$W_h$} (h2);
+    
+\end{tikzpicture}
+\caption{Example of a Recurrent Neural Network (RNN)}
+\label{fig:rnn}
+\end{figure}
 
 But one of drawback of Recurrent Neural Networks is that they have problem memorizing information or context for long sequences and this is mainly due to the vanishing gradient problem \cite{RNNexploding}.
 
@@ -667,6 +837,7 @@ We show in Sections \ref{ext}, \ref{enh} and \ref{finetuning} that these addings
 
 
 \chapter{Results}
+\label{res}
 
 In this chapter we present our results on the environment and dataset presented in [CITE].
 In the first section, using the LibriSpeech Corpus, we reproduce the results of the Deep Clustering and Source Constrastive Estimation methods. In the second section, we show our results using the Adaptive layer with these two methods: to do so we first analyze the \textit{pretraining} phase of the Adaptive layer for different hyperparameters and show some drawbacks encountered with this latter. In the third section we try all the contributions mentioned previously and see the improvements we could get.
