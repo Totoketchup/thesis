@@ -135,7 +135,7 @@ The STFT of a signal $x$ can be seen as a complex matrix $X \in \mathbb{C}^{T\ti
 	STFT\{x\} = X = |X|\exp^{j\phi}
 \]
 
-In this decomposition, $|X|$ represents the STFT magnitude and $\phi$ its phase. In audio analysis, what is called the \textit{\textbf{spectrogram}} \autoref{fig:spectrogram} of an audio signal is the squared magnitude of the computed Short-Time Fourier Transform, Figure [Cite figure] represents the spectrogram of an audio signal from a speech. Its formula is defined as follow:
+In this decomposition, $|X|$ represents the STFT magnitude and $\phi$ its phase. In audio analysis, what is called the \textit{\textbf{spectrogram}} (\autoref{fig:spectrogram}) of an audio signal is the squared magnitude of the computed Short-Time Fourier Transform and is defined as follow:
 
 \[
 	spectrogram\{x\}(t,f) =  |X(t,f)|^2
@@ -227,7 +227,7 @@ In the result section \ref{res} we compare our results with the Wiener-like filt
 Deep Learning \cite{DL, DLBOOK} has seen an explosion of interest these last years and is now applied in many fields in machine learning such as classification, clustering, generation or prediction. In this section we present basic deep learning concepts such as Feed Forward Networks (FFN), Convolutional Neural Networks (CNN) and Recurrent Neural Networks. Furthermore, we explain more complex structures that we encounter in this study like Bidirectional Long Short Term Memory (BLSTM) cells and sparse autoencoder.
 
 \subsection{Feed Forward Networks}
-
+\label{ffn}
 \begin{figure}[!hb]
 
 \centering
@@ -315,7 +315,7 @@ Articial neurons are mimicking the process of biological neurons in two main ste
 
 Here, $W$ is named the weights of the neuron layer and $b$ the biases. The function $f$ is named the activation function and decides how much information is transmitted to the next layer. This operation can be repeated several times and thus form a multi-layered feed forward network, as well named fully connected layers since all the neurons is each layer are connected to each other. \cite{FFN} has shown that this structure can approximate any functions. The intermediate layers are named the \textit{hidden} layers and the last one is logically named the \textit{output} layer.
 
-Previously, the most commonly used activation functions were the sigmoid and the hyperbolic tangent, but because of their particular derivatives they caused either vanishing or exploding gradient. We explain this phenomenon in the subsection [REF]. 
+Previously, the most commonly used activation functions were the sigmoid and the hyperbolic tangent, but because of their particular derivatives they caused either vanishing or exploding gradient. We explain this phenomenon in \autoref{loss}. 
 
 \[sigmoid(x)  = \frac{1}{1+e^{-x}}\]
 \[tanh(x)  = \frac{e^x - e^{-x}}{e^x + e^{-x}}\]
@@ -345,19 +345,13 @@ The new commonly used activation functions are the Rectified Linear Unit (ReLU),
 
 Convolutional Neural Networks (CNN or ConvNet) \cite{unpool,CNNrecent} (\autoref{fig:cnn}) are networks made from the same artificial neurons presented previously, but do not apply the same operations as fully connected networks.
 The interest for CNNs increased a lot after AlexNet deep learning architecture won the ILSVRC competition in 2012 using this convolutional networks and improved previous state of the art method by almost 11\%. From then, deeper and more complex CNN networks have been built and constantly improving their accuracy.
-The main difference with fully connected networks is that, as its name suggests, CNN are using convolutional operations with \textit{filters/kernels} along their inputs in order to create a \textit{feature map/receptive field}.
+The main difference with fully connected networks is that, as its name suggests, CNN are using convolutional operations with \textbf{\textit{filters/kernels}} along their inputs in order to create a \textbf{\textit{feature map/receptive field}}.
 
-Image analysis begins to be difficult to use with fully connected networks because for $256x256$ images for instance, the input has to be flatten and as a result the number of weights in the networks becomes very large. In CNN this problem is solved using filters that are shared across the receptive field, and thus considerably decreasing the number of weights used in the architecture.
+Image analysis began to be very difficult to use with fully connected networks because, for $256\times 256$ images for instance, the input has to be flatten and as a result the number of weights in the networks becomes very large. In CNN this problem is solved using filters that are shared across the receptive field, and thus considerably decreasing the number of weights used in the architecture.
 
-Today's common CNN architectures used for image analysis for exemple are made of blocks computing the following operations: first, a \textbf{convolution} operation is applied on the input with several filters on each channel of the input (RGB images have 3 channels) TODO
+Today's common CNN architectures, used for image analysis for instance, are made of blocks computing the following operations: first, a \textbf{convolution} operation is applied on the input with several filters on each channel of the input (for instance images can be made of red, green and blue channels), then a non-linear activation function is applied and finally a subsampling operation such as maxpooling or average pooling is applied, like it is shown in \autoref{fig:cnn}.
 
-\textbf{Active research in CNN , interpretability 
-}
-
-\textbf{Dilated Convolutional Neural Networks
-}
-
-In our study, with the Adaptive layer [CITE] we use one-dimensional convolution layers along audio signal in order to learn useful filter-banks for the multi speaker separation problem.
+In our study, with the Adaptive layer (\autoref{adapt}) we use one-dimensional convolution layers along audio signal in order to learn useful filter-banks for the multi speaker separation problem.
 
 \subsection{Recurrent Neural Networks}
 
@@ -373,7 +367,7 @@ y^t = g(W_{hy} \cdot h^t + b_{hy} )
 
 
 
-\begin{figure}
+\begin{figure}[h]
 \centering
 \begin{tikzpicture}
 
@@ -419,8 +413,84 @@ y^t = g(W_{hy} \cdot h^t + b_{hy} )
 But one of drawback of Recurrent Neural Networks is that they have problem memorizing information or context for long sequences and this is mainly due to the vanishing gradient problem \cite{RNNexploding}.
 
 
-Long Short Term Memory architectures \cite{LSTM} (Figure [CITE]) are solving this problem by using a ''memory cell'' that is transiting the main information using linear operations. As its name suggests, this architecture can learn long-term dependencies.
+Long Short Term Memory architectures \cite{LSTM} (\autoref{fig:lstm}) are solving this problem by using a ''memory cell'' that is transiting the main information using linear operations. As its name suggests, this architecture can learn long-term dependencies.
 The chained structure is kept but cells do not interact with the input the same way classical RNNs do. 
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+
+\node[draw=black, minimum width=6mm, circle, fill={rgb:orange,1;yellow,2;pink,5},label=270:$x_t$] (x) at (0,0) {};
+
+\node[minimum width=6mm, left of=x, yshift=1.3cm, xshift=-1.0cm] (yt1) {$y_{t-1}$};
+
+
+
+	\draw[-stealth, very thick, gray, above=2pt of x, rounded corners=10mm, yshift=0.8cm, xshift=-1.2cm] rectangle (8.4, 4.8);
+
+	\draw[-stealth, very thick, red!50, above=2pt of x, rounded corners=5mm, yshift=1.0cm,xshift=-0.75cm] rectangle (1.5, 4.2) node[midway, above, yshift=2cm] {forget} ;
+
+	\draw[-stealth, very thick, green!50, above=2pt of x, rounded corners=5mm, yshift=1.0cm,xshift=0.95cm] rectangle (3.0, 4.2) node[midway, above, yshift=2cm] {input};
+
+\draw[-stealth, very thick, blue!50, right= of x, rounded corners=5mm, yshift=1.0cm,xshift=4.1cm] rectangle (2.5, 4.2) node[midway, above, yshift=2cm] {output};
+
+
+\node[rectangle, draw, thick, above of= x, fill=blue!30, yshift=1.25cm] (sig1) {$\sigma$}; 
+
+\node[rectangle, draw, thick, right of= sig1, fill=blue!30, xshift=0.6cm] (sig2) {$\sigma$}; 
+
+\node[rectangle, draw, thick, right of= sig2, fill=blue!30, xshift=0.6cm] (tanh2) {$tanh$}; 
+
+\node[circle, draw, thick, above of= tanh2, minimum width=0.1cm,yshift=0.5cm, fill=red!30, inner sep=0pt] (mul2) {$\times$}; 
+ 
+
+
+\node[rectangle, draw, thick, right of= tanh2, fill=blue!30, xshift=0.5cm] (sig3) {$\sigma$}; 
+
+\node[circle, draw, thick, above of= sig1, minimum width=0.1cm, fill=red!30, yshift =1.5cm,inner sep=0pt] (mul1) {$\times$}; 
+
+
+\node[minimum width=6mm, left= of mul1, xshift=-0.3cm] (ct1)  {$c_{t-1}$};
+
+\node[minimum width=6mm, right= of ct1, xshift=8cm] (ct)  {$c_{t}$};
+
+\node[minimum width=6mm, right= of yt1, xshift=8cm] (yt)  {$y_{t}$};
+
+
+\node[circle, draw, thick,above of=mul2,, minimum width=0.1cm, fill=red!30,inner sep=0pt] (add) {$+$}; 
+
+\node[circle, draw, thick,right of=sig3,yshift=1.0cm, minimum width=0.1cm, fill=red!30,inner sep=0pt] (mul3) {$\times$}; 
+
+\node[rectangle, draw, thick, above of= mul3, fill=blue!30,yshift=-0.2cm] (tanh3) {$tanh$}; 
+
+\draw[thick,rounded corners,->,>=stealth] (yt1) -| node[left,pos=0.75] {$U_{f}$} node[right,pos=0.75] {$W_{f}$} (sig1.south);
+\draw[thick,rounded corners,->,>=stealth] (yt1) -| node[left,pos=0.75] {$U_{i}$} node[right,pos=0.75] {$W_{i}$} (sig2.south);
+\draw[thick,rounded corners,->,>=stealth] (yt1) -| node[left,pos=0.75] {$U_{c}$} node[right,pos=0.75] {$W_{c}$} (tanh2.south);
+\draw[thick,rounded corners,->,>=stealth] (yt1) -| node[left,pos=0.75] {$U_{o}$} node[right,pos=0.75] {$W_{o}$} (sig3.south);
+
+\draw[thick,rounded corners,->,>=stealth] (sig3.north) |- (tanh3.west);
+\draw[thick,rounded corners,->,>=stealth] (add) -| (tanh3);
+
+\draw[thick,rounded corners,->,>=stealth] (sig2.north) |- (mul2.west);
+\draw[thick,->,>=stealth] (tanh2.north) -| (mul2.south);
+
+
+\draw[thick,->,>=stealth] (sig1.north) -- (mul1.south);
+
+\draw[thick,->,>=stealth] (ct1.east) -- (mul1.west);
+
+\draw[thick,->,>=stealth] (mul1) -- (add);
+\draw[thick,->,>=stealth] (mul2) -- (add);
+\draw[thick,->,>=stealth] (tanh3) -- (mul3);
+\draw[thick] (x) -- (0,1.29);
+\draw[thick] (add) -- (ct);
+\draw[thick,rounded corners] (mul3) |- (yt);
+
+
+\end{tikzpicture}
+\caption[Architecture of a Long Short Term Memory Cell]{Architecture of a Long Short Term Memory cell (LSTM) - in red is the \textbf{forget gate}, in green the \textbf{input gate} and in blue the \textbf{output gate} - matrices on the left of lines are applied to $y_{t-1}$ and the one on the right to $x_t$}
+\label{fig:lstm}
+\end{figure}
 
 
 LSTMs block consists in a \textbf{memory cell}, an \textbf{input gate}, a \textbf{forget gate} and an \textbf{output gate}.
@@ -433,21 +503,22 @@ This forgetting vector is then applied in an element-wise way to the memory cell
 
 The \textbf{input gate} is deciding what information to add to the memory cell using two operations that are then multiplied together. The first one is applying a sigmoid function to the input in order to select from which part of the input the information will be added and the second is applying a hyperbolic tangente to determine the value added. Then this gate is added to the current memory state after the forget state has been applied:
 
-\[i_t = \sigma(W_{i} x_t + U_{i} h_{t-1} + b_i) \circ \tanh(W_{c} x_t + U_{c} h_{t-1} + b_c)\]
+\[i_t = \sigma(W_{i} x_t + U_{i} y_{t-1} + b_i) \circ \tanh(W_{c} x_t + U_{c} y_{t-1} + b_c)\]
 
 The \textbf{output gate}, as its name implies, is finally deciding what is the output using the memory state and the current input. The input will choose what to output using a sigmoid and the memory state will decide the value by applying an hyperbolic tangente:
 
-\[o_t = \sigma(W_{o} x_t + U_{o} h_{t-1} + b_o) \circ \tanh(c_t)\]
+\[y_t = \sigma(W_{o} x_t + U_{o} y_{t-1} + b_o) \circ \tanh(c_t)\]
 
 Therefore the main equation for the memory state is the following:
 
-\[c_t = f_t \circ c_{t-1} + i_t \circ \tanh(W_{c} x_t + U_{c} h_{t-1} + b_c)\]
+\[c_t = f_t \circ c_{t-1} + i_t \circ \tanh(W_{c} x_t + U_{c} y_{t-1} + b_c)\]
 
-Bidirectional Long Short Term Memory (BLSTM) (\autoref{fig:blstm}) is a combination of two regular LSTMs reading the same input sequence in two opposite directions. The output of these two LSTM networks are then concatenated to form a BLSTM. BLSTM are very efficient when the input sequence is not only interpretable linearly from its first element to its last but also have a global context.
+Bidirectional Long Short Term Memory (BLSTM) (\autoref{fig:blstm}) is a combination of two regular LSTMs reading the same input sequence in two opposite directions. The output of these two LSTM networks are then concatenated to form a BLSTM. Bidirectional Long Short Term Memory are very efficient when it comes to handle input sequences that are not only interpretable linearly from their first element to their last but also have a global complex context.
 
 
-\begin{figure}
+\begin{figure}[h]
 \centering
+
 \begin{tikzpicture}
 
 	\node[rectangle, draw, minimum height=1cm, minimum width=1cm,fill={rgb:red,1;green,4;blue,0.5}] (RNN) {LSTM$_\rightarrow$};
@@ -622,11 +693,11 @@ L_{sparsity}(\theta) = \sum_{j=1}^{dim(c)}{D_{KL}(\rho||\hat{\rho}_j)} = \sum_{j
 
 The KL divergence can be seen as the measure of lost information when comparing two discrete probabilities, here every $\rho_j$ are approximating $\rho$.
 
-In our study, the Adaptive layer presented in [CITE] is based on a sparse autoencoder structure.
+In our study, the Adaptive layer presented in \autoref{adapt} is based on a sparse autoencoder structure.
 
 
 \subsection{Loss function and Backpropagation}
-
+\label{loss}
 In order to train a neural network to learn a specific function in order to realize a specific task, it is needed to tell to the network '\textit{how much it is wrong}' in order to correct its next prediction. This is realized using an \textbf{objective function}/\textbf{loss function}/\textbf{cost function} which is telling the goal of our problem. This task can be seen as an optimization problem where the goal is to minimize or maximize the objective function in order to reach its global minimum or maximum point (depending on its definition) and thus reach the optimal solution. In order to reach this optimal goal associated with a particular objective with a deep neural networks the backpropagation algorithm coupled with the stochastic gradient descent algorithm.
 
 
@@ -643,7 +714,7 @@ If the whole network is made of differentiable operations then it is possible to
 \theta^t = \theta^{t-1} - \alpha \frac{\partial L(\theta^{t-1})}{\partial \theta}
  \]
 
-The vanishing gradient problem by the sigmoid function mentioned in [CITE] is explained by the fact that during the training phase, bacpropagation algorithm is used and the minimum (which can be local) is searched iteratively in the opposite direction of the error derivative. During the backpropagation process, the sigmoid derivative function is used and multipled between each layers. The problem is that this function lies in $(0, 1/4]$ and these multiplications make the gradient vanish the more it backpropagates it.
+The vanishing gradient problem by the sigmoid function mentioned in \autoref{ffn} is explained by the fact that during the training phase, bacpropagation algorithm is used and the minimum (which can be local) is searched iteratively in the opposite direction of the error derivative. During the backpropagation process, the sigmoid derivative function is used and multipled between each layers. The problem is that this function lies in $(0, 1/4]$ and these multiplications make the gradient vanish the more it backpropagates it.
 Furthermore, because of this problem, the first layers of our Neural Network are slower to train than the last one and this might results in a huge inaccuracy at the end. For example in CNNs, as mentioned, first layers learn large features so that the next layers refined these features as much as it goes deeper. The vanishing gradient problem implies that the refined features will have in input corrupted information from the previous layers and therefore will not be able to learn useful patterns.
 
 \subsection{Regularization}
@@ -683,6 +754,8 @@ Another possible regularization during the training phase is to \textbf{increase
 
 One of the mostly commonly used and simple technique is called the \textbf{early stopping} (Explained in \autoref{fig:gen}). This approach consists in evaluating the network on a validation set during the training phase after a certain number of step, e.g. after every epoch. Overfitting can therefore be detected if the current validation set evaluation is higher than the previous one. Commonly, it is set to stop the training after a certain number of evaluations with a lower accuracy than the previous best one. 
 
+In this study, early stopping is used to avoid overfitting, we set it so that the training phase stops when the validation set accuracy does not decrease anymore after 5 evaluations. In addition, recurrent dropout is used in the stacked BLSTM networks.
+
 \subsection{Optimization}
 
 During the optimization phase, three types of gradient descent exists. Firstly, the \textbf{batch gradient descent} is taking in input the whole dataset and then updating the weights accordindly. Using this method guarantees to converge to the global minimum for convex objective function and local minimum for non-convex one but this method is intractable for huge dataset which can not fit entirely in memory and is not able to handle online learning. The second method, named the \textbf{stochastic gradient descent} (SGD), consists in updating the weights after each sample has been fed to the network and is therefore way faster than the first one and can use online learning training. But there can be a huge variance between each update and thus the training phase becomes very noisy in terms of convergence. The third and today commonly used method is the \textbf{mini-batch gradient descent} which considers $n$ samples for updating the weights. Thus, the variance between each update is decreasing as much as the minibatch size increasesn but this size becomes a new hyperparameter to tune for training a neural network. This latter method is often called directly the SGD by misuse of language because minibatches are now universally used during the training phase.
@@ -695,19 +768,37 @@ One problem with the SGD method are ravines, surfaces where the curve is steeper
 \[\theta_t+1 = \theta_t - v_t\]
 The momentum term $\gamma$ is commonly set to the value $0.9$. One extension to the Momentum method is the Nestorov Accelerated Gradient (NAG) [cite].
 \subsubsection{RMSProp optimizer}
-RMSProp optimizer applies an exponential decaying average
-With $g_t = \nabla_{\theta_t}J(\theta_t)$ gradient of the loss function to the parameter $\theta_t$t, RMSProp is defined as follow:
+Root Mean Square Propagation (RMSProp) optimizer \cite{hinton2012neural} consists in exponentially decaying the learning rate using the average of squared gradients.
+Defining $g_t = \nabla_{\theta_t}J(\theta_t)$ gradient of the loss function to the parameter $\theta_t$t, $\eta$ the initial learning rate, RMSProp method is defined as follow:
 
 \[E[g^2]_t = 0.9E[g^2]_{t-1} +0.1g^2_t\]
-\[\theta_t+1 = \theta_t - \frac{\eta}{\sqrt{E[g^2]+\epsilon}} g_t\]
-
-\textbf{TODO}
+\[\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]+\epsilon}} g_t\]
 
 \subsubsection{Adam optimizer}
 
-\textbf{TODO}
 
-Adam optimizer \cite{ADAM} approach 
+Adaptive Moment Estimation (Adam) optimizer \cite{ADAM} approach can be seen as an update of RMSProp where in addition to computing exponentially decaying squared gradient $v_t$, it considers as well the exponentially decaying gradients $m_t$ as follow:
+
+\[m_t = \beta_1 m_{t-1} + (1-\beta_1)g_t\]
+\[v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2\]
+
+Since it has been observed that $m_t$ and $v_t$ are biased for $\beta$ values close to 1, a bias correction is applied and:
+
+\[\hat m_t = \frac{m_t}{1-\beta_1}\]
+\[\hat v_t = \frac{v_t}{1-\beta_2}\]
+
+Finally, we can see Adam optimization method as a combination of RMSProp and Momentum defined as:
+
+\[\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{ \hat v_t}+\epsilon} \hat m_t\]
+
+It has been shown (\autoref{fig:adam}) that Adam can lead to better results in terms of convergence than other optimizers.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{adam}
+\caption[Comparison of SGD, Adam and RMSProp performances]{ Adam Optimizer has better convergence than other optimizers such as RMSProp on the MNIST dataset with a multilayer neural network with dropout - Figure from Adam's paper \cite{ADAM}}
+\label{fig:adam} 
+\end{figure}
 
 In our study, we use both RMSProp and Adam optimizers and select the one leading to the best accuracy. To do so we run the same experiments with different optimizers and learning rates.
 
