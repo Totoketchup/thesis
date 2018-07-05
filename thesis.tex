@@ -116,7 +116,7 @@ Secondly and in parallel, we improve the Source Contrastive Estimation method us
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.8\textwidth]{xmix}
-\caption{Spectrogram of a 2 speakers mixture using the square root of the Hann function as window of size 256 and a hop size of 64. The length of the audio signal used is of 26368 frames ($\simeq 3.3$ seconds),and in this case $F = 129$ and $T = 409$.}
+\caption[Spectrogram of a 2 speaker mixture]{Spectrogram of a 2 speakers mixture using the square root of the Hann function as window of size 256 and a hop size of 64. The length of the audio signal used is of 26368 frames ($\simeq 3.3$ seconds),and in this case $F = 129$ and $T = 409$.}
 \label{fig:spectrogram} 
 \end{figure}
 
@@ -217,7 +217,7 @@ In the result section \ref{res} we compare our results with the Wiener-like filt
 \label{fig:ibmsep1} 
 \end{subfigure}
 \captionsetup{justification=centering}
-\caption{Comparison between binary masks and Wiener-like masks. As mentioned, we can see that using Wiener-like (\autoref{fig:wf1}) that are softer than binary masks (\autoref{fig:ibm1}) is leading to a better reconstruction}
+\caption[IBM and Wiener-like masks comparison]{Comparison between binary masks and Wiener-like masks. As mentioned, we can see that using Wiener-like (\autoref{fig:wf1}) that are softer than binary masks (\autoref{fig:ibm1}) is leading to a better reconstruction}
 \label{fig:masking} 
 
 \end{figure}
@@ -364,6 +364,15 @@ In our study, with the Adaptive layer [CITE] we use one-dimensional convolution 
 Compared to vanilla feed forward networks, recurrent neural networks (RNN) are ANNs with recurrent connections, they are made of hidden states evolving in a non-linear dynamic way and
 are mostly used with sequential learning.
 
+\[
+h^{t} = f(W_h \cdot h^{t-1} + W_{xh} \cdot x^t + b_h)
+\]
+\[
+y^t = g(W_{hy} \cdot h^t + b_{hy} )
+\]
+
+
+
 \begin{figure}
 \centering
 \begin{tikzpicture}
@@ -390,7 +399,7 @@ are mostly used with sequential learning.
    
     \node[draw=black, minimum width=6mm, circle, fill={rgb:red,4;green,1;blue,0},label=90:$y_\index$] (y\x) at (3+\jump +1.5*\x,2) {};
     
-    \node[draw=black, minimum width=6mm, circle, fill={rgb:red,1;green,4;blue,0.5}] (h\x) at (3+\jump +1.5*\x,0) {};
+    \node[draw=black, minimum width=6mm, circle, fill={rgb:red,1;green,4;blue,0.5}, label={[label distance=1pt,  yshift=-0.2cm,xshift=0.1cm]135:$h_\index$}] (h\x) at (3+\jump +1.5*\x,0) {};
  
     \node[draw=black, minimum width=6mm, circle, fill={rgb:orange,1;yellow,2;pink,5},label=270:$x_\index$] (x\x) at (3+\jump+1.5*\x,-2) {};
     
@@ -399,17 +408,15 @@ are mostly used with sequential learning.
 
 }
     
-    \draw[->,>=stealth] (h0) -- node[above,sloped,pos=0.4] {$W_h$} (h1);
+    \draw[->,>=stealth] (h0) -- node[above,sloped,pos=0.2] {$W_h$} (h1);
     \draw[->,>=stealth, dashed] (h1) -- node[above,sloped,pos=0.3] {$W_h$} (h2);
     
 \end{tikzpicture}
-\caption{Example of a Recurrent Neural Network (RNN)}
+\caption{Example of a vanilla Recurrent Neural Network (RNN)}
 \label{fig:rnn}
 \end{figure}
 
 But one of drawback of Recurrent Neural Networks is that they have problem memorizing information or context for long sequences and this is mainly due to the vanishing gradient problem \cite{RNNexploding}.
-
-\textbf{Figure}
 
 
 Long Short Term Memory architectures \cite{LSTM} (Figure [CITE]) are solving this problem by using a ''memory cell'' that is transiting the main information using linear operations. As its name suggests, this architecture can learn long-term dependencies.
@@ -436,16 +443,147 @@ Therefore the main equation for the memory state is the following:
 
 \[c_t = f_t \circ c_{t-1} + i_t \circ \tanh(W_{c} x_t + U_{c} h_{t-1} + b_c)\]
 
-Bidirectionnal Long Short Term Memory (BLSTM) is a combination of two regular LSTMs reading the same input sequence in two opposite directions. The output of these two LSTM networks are then concatenated to form a BLSTM. BLSTM are very efficient when the input sequence is not only interpretable linearly from its first element to its last but also have a global context.
+Bidirectional Long Short Term Memory (BLSTM) (\autoref{fig:blstm}) is a combination of two regular LSTMs reading the same input sequence in two opposite directions. The output of these two LSTM networks are then concatenated to form a BLSTM. BLSTM are very efficient when the input sequence is not only interpretable linearly from its first element to its last but also have a global context.
+
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+
+	\node[rectangle, draw, minimum height=1cm, minimum width=1cm,fill={rgb:red,1;green,4;blue,0.5}] (RNN) {LSTM$_\rightarrow$};
+	\node[rectangle, right=of RNN, draw, minimum height=1cm, minimum width=1cm,fill={rgb:red,1;green,4;blue,0.5}] (RNN2) {LSTM$_\rightarrow$};
+	\node[rectangle, right=2cm of RNN2, draw, minimum height=1cm, minimum width=1cm,fill={rgb:red,1;green,4;blue,0.5}] (RNN3) {LSTM$_\rightarrow$};
+			
+	\node[rectangle, right=of RNN3, draw, minimum height=1cm, minimum width=1cm,fill={rgb:red,1;green,4;blue,0.5}] (RNN4) {LSTM$_\rightarrow$};
+			
+			
+	\node[rectangle, above=of RNN4, draw, minimum height=1cm, minimum width=1cm, fill={rgb:red,1;green,4;blue,0.5}] (R25) {LSTM$_\leftarrow$};
+	\node[rectangle, left=of R25, minimum height=1cm, minimum width=1cm, draw,fill={rgb:red,1;green,4;blue,0.5}] (R24) {LSTM$_\leftarrow$};
+	\node[rectangle, left=2cm of R24, draw, minimum height=1cm, minimum width=1cm,fill={rgb:red,1;green,4;blue,0.5}] (R23) {LSTM$_\leftarrow$};
+	\node[rectangle, left=of R23, draw, minimum height=1cm, minimum width=1cm,fill={rgb:red,1;green,4;blue,0.5}] (R22) {LSTM$_\leftarrow$};
+			
+	\node[circle, draw=black, fill={rgb:orange,1;yellow,2;pink,5}, label=270:$\vec{x}_1$, minimum width=0.8cm, below=of RNN] (X1) {};
+	\node[circle, draw=black, fill={rgb:orange,1;yellow,2;pink,5}, label=270:$\vec{x}_2$, minimum width=0.8cm,below=of RNN2] (X2) {};
+	\node[circle, draw=black, fill={rgb:orange,1;yellow,2;pink,5}, label=270:$\vec{x}_{n-1}$, minimum width=0.8cm,below=of RNN3] (X3) {};
+	\node[circle, draw=black, fill={rgb:orange,1;yellow,2;pink,5}, label=270:$\vec{x}_n$, minimum width=0.8cm,below=of RNN4] (X4) {};
+	\node[circle, draw=black, fill={rgb:red,4;green,1;blue,0}, label=90:$\vec{y}_n$, minimum width=0.8cm,above=of R25] (Y5) {$\oplus$};
+	\node[circle, draw=black, fill={rgb:red,4;green,1;blue,0}, label=90:$\vec{y}_{n-1}$, minimum width=0.8cm,above=of R24] (Y4) {$\oplus$};
+	\node[circle, draw=black, fill={rgb:red,4;green,1;blue,0}, label=90:$\vec{y}_2$, minimum width=0.8cm,above=of R23] (Y3) {$\oplus$};
+	\node[circle, draw=black, fill={rgb:red,4;green,1;blue,0}, label=90:$\vec{y}_1$, minimum width=0.8cm,above=of R22] (Y2) {$\oplus$};
+			
+	\draw[-stealth, thick] (X1) -- (RNN);
+	\draw[-stealth, thick] (X2) -- (RNN2);
+	\draw[-stealth, thick] (X3) -- (RNN3);
+	\draw[-stealth, thick] (X4) -- (RNN4);
+	\draw[-stealth, thick] (RNN) -- node[above, pos=0.35] {$\vec{h}_1^\rightarrow$} (RNN2);
+	\draw[-stealth, dashed] (RNN2) -- node[above, pos=0.2] {$\vec{h}_2^\rightarrow$} (RNN3);
+	\draw[-stealth, thick] (RNN3) -- node[above, pos=0.35] {$\vec{h}_{n-1}^\rightarrow$} (RNN4);
+			
+	\path[-stealth, ultra thick, white] (X1) edge[bend left=45] (R22);
+	\path[-stealth, thick] (X1) edge[bend left=45] (R22);
+	\path[-stealth, ultra thick, white] (X2) edge[bend left=45] (R23);
+	\path[-stealth, thick] (X2) edge[bend left=45] (R23);
+	\path[-stealth, ultra thick, white] (X3) edge[bend left=45] (R24);
+	\path[-stealth, thick] (X3) edge[bend left=45] (R24);
+	\path[-stealth, ultra thick, white] (X4) edge[bend left=45] (R25);
+	\path[-stealth, thick] (X4) edge[bend left=45] (R25);
+			
+	\draw[-stealth, thick] (R22) -- (Y2);
+	\draw[-stealth, thick] (R23) -- (Y3);
+	\draw[-stealth, thick] (R24) -- (Y4);
+	\draw[-stealth, thick] (R25) -- (Y5);
+		
+	\draw[stealth-, thick] (R22) -- node[above, pos=0.65] {$\vec{h}_2^\leftarrow$} (R23);
+	\draw[stealth-, dashed] (R23) -- node[above, pos=0.8] {$\vec{h}_{n-1}^\leftarrow$} (R24);
+	\draw[stealth-, thick] (R24) -- node[above, pos=0.65] {$\vec{h}_n^\leftarrow$} (R25);
+			
+	\path[-stealth, ultra thick, white] (RNN) edge[bend right=45] (Y2);
+	\path[-stealth, thick] (RNN) edge[bend right=45] (Y2);
+	\path[-stealth, ultra thick, white] (RNN2) edge[bend right=45] (Y3);
+	\path[-stealth, thick] (RNN2) edge[bend right=45] (Y3);
+	\path[-stealth, ultra thick, white] (RNN3) edge[bend right=45] (Y4);
+	\path[-stealth, thick] (RNN3) edge[bend right=45] (Y4);
+	\path[-stealth, ultra thick, white] (RNN4) edge[bend right=45] (Y5);
+	\path[-stealth, thick] (RNN4) edge[bend right=45] (Y5);
+			
+\end{tikzpicture}
+\caption[Example of a Bidirectional Long Short Term Memory network]{Bidirectional Long Short Term Memory network consists in two LSTM networks of opposite direction from which the outputs have been concatenated together.}
+\label{fig:blstm}
+\end{figure}
 
 We will see in our study that stacked BLSTM layers are very efficient for handling structures such as spectrograms and extract useful information to operate source separation.
 
 \subsection{Autoencoders and Sparsity}
 \label{AE}
 
-\textbf{Figure}
+\begin{figure}[!hb]
 
-Autoencoders \cite{AE}, also called auto-associators, are two layers perceptrons trained to reconstruct their input, and are in that sense called \textbf{self-supervised}. This particular architecture is trying to learn clever \textit{representation} of the input by reducing or increasing (overcomplete) the number of hidden units compared to this latter. This is done to avoid learning the identity function (what would happen if the hidden layer has the same size) and can force the network to learn specific features of the input in order to reconstruct it efficiently. Typically, with an input $x$, a two-layered autoencoder is defined as:
+\centering
+\begin{tikzpicture}
+
+[   cnode/.style={draw=black,minimum width=10mm, circle}, ]
+    \node at (0,-4) {$\vdots$};
+    \node at (4,-3.3) {$\vdots$};
+    \node at (8,-4) {$\vdots$};
+    \node at (0,-6) {Input layer};
+    \node at (4,-6) {Code layer};
+    \node at (8,-6) {Output layer};
+    \foreach \x in {1,...,4}
+    {   
+    \pgfmathparse{\x<4 ? \x : "n"}
+        \node[draw=black, minimum width=6mm, circle, fill={rgb:orange,1;yellow,2;pink,5},label=180:$x_{\pgfmathresult}$] (x-\x) at (0,{-\x-div(\x,4)}) {};
+    }
+	
+	 \foreach \x in {1,...,3}
+    {
+    \pgfmathparse{\x<3 ? \x : "m"}
+        
+        \node[draw=black, minimum width=6mm, circle,fill={rgb:red,1;green,4;blue,0.5},label={[label distance=0.1cm, yshift=-0.2cm] 90:$c_{\pgfmathresult}$}] 	(p-\x) at (4,{-0.4-1.0*\x-div(\x,3)}) {};
+    }
+    
+    \foreach \x in {1,...,4}
+    {
+        \pgfmathparse{\x<4 ? \x : "n"}
+        \node[draw=black, minimum width=6mm, circle, fill={rgb:red,4;green,1;blue,0},label=0:$\tilde x_{\pgfmathresult}$] (o-\x) at (8,{-\x-div(\x,4)}) {};
+    }   
+    
+    
+    
+    \foreach \x in {1}
+    {   \foreach \y in {1,...,3}
+        {   
+          \pgfmathparse{\y<3 ? \y : "m"}
+        \draw (x-\x) -- (p-\y);
+        }
+    } 
+    
+    \foreach \x in {2,...,3}
+    {   \foreach \y in {1,...,3}
+        {   \draw (x-\x) -- (p-\y);
+        }
+    }
+    
+    \foreach \x in {4}
+    {   \foreach \y in {1,...,3}
+        {   
+        \pgfmathparse{\y<3 ? \y : "m"}        
+        \draw (x-\x) -- (p-\y);
+        }
+    }
+    
+    \foreach \x in {1,...,3}
+    {   \foreach \y in {1,...,4}
+        {   \draw (p-\x) -- (o-\y);
+        }
+    }
+    
+    
+\end{tikzpicture}
+\caption[Simple one-layered fully connected autoencoder]{Example of a one layer fully connected autoencoder. Here the coding layer has a smaller dimension than the input dimension.}
+\label{fig:ae}
+\end{figure}
+
+Autoencoders \cite{AE}, also called auto-associators, are two layers perceptrons trained to reconstruct their input, and are in that sense called \textbf{self-supervised}. This particular architecture is trying to learn clever \textit{representation} of the input by reducing or increasing (overcomplete) the number of hidden units compared to this latter. This is done to avoid learning the identity function (what would happen if the hidden layer has the same size) and can force the network to learn specific features of the input in order to reconstruct it efficiently. Typically, with an input $x$, a two-layered autoencoder (\autoref{fig:ae}) is defined as:
 
 \[
 c(x) = f(W_1 \cdot x + b_1)
@@ -489,18 +627,37 @@ In our study, the Adaptive layer presented in [CITE] is based on a sparse autoen
 
 \subsection{Loss function and Backpropagation}
 
-\textbf{TODO LOSS} 
+In order to train a neural network to learn a specific function in order to realize a specific task, it is needed to tell to the network '\textit{how much it is wrong}' in order to correct its next prediction. This is realized using an \textbf{objective function}/\textbf{loss function}/\textbf{cost function} which is telling the goal of our problem. This task can be seen as an optimization problem where the goal is to minimize or maximize the objective function in order to reach its global minimum or maximum point (depending on its definition) and thus reach the optimal solution. In order to reach this optimal goal associated with a particular objective with a deep neural networks the backpropagation algorithm coupled with the stochastic gradient descent algorithm.
 
-The backpropagation algorithm \cite{BACKPROP} is the method used to compute the partial derivatives [insert] needed for the stochastic gradient descent algorithm. It is commonly said that the backpropagation step encompasses the gradient computation and the weights update, but actually there are three distinct steps, (1) the forward step wonsisting in inputting the training sample and computing the neural network output, (2) the backpropagation computing the partial derivatives of the objective function and finally (3) the stochastic gradient descent is applied and all the weights are updated.
+
+The \textbf{backpropagation algorithm} \cite{BACKPROP} is the method used to compute the partial derivatives needed for the stochastic gradient descent algorithm. It is commonly said that the backpropagation step encompasses the gradient computation and the weights update of the neural network,but actually there are three distinct steps, (1) the forward step consisting in inputting the training samples and computing the neural network outputs, (2) the backpropagation computing the partial derivatives of the objective function and finally (3) the stochastic gradient descent algorithm is applied and all the weights are updated.
+
+The backpropagation algorithm is using the \textbf{chain rule} in order to compute the gradient of the objective function $L(\theta; X)$ with respect to each weight $\theta_i$ (their \textit{influence} on the loss function) defined as $\frac{\partial L(\theta; X)}{\partial \theta_i}$. For instance, if $L(\theta; X) = h(\theta)$, using the chain rule, we can compute $\frac{\partial L(\theta)}{\partial \theta}$ as:
+\[
+\frac{\partial L(\theta)}{\partial \theta} = \frac{\partial L}{\partial h} \frac{\partial h}{\partial \theta}
+\]
+
+If the whole network is made of differentiable operations then it is possible to \textit{backpropagate} the gradient all along until the input layer and thus compute the influence of each weight and update them accordingly using the stochastic gradient descent formula:
+
+ \[
+\theta^t = \theta^{t-1} - \alpha \frac{\partial L(\theta^{t-1})}{\partial \theta}
+ \]
 
 The vanishing gradient problem by the sigmoid function mentioned in [CITE] is explained by the fact that during the training phase, bacpropagation algorithm is used and the minimum (which can be local) is searched iteratively in the opposite direction of the error derivative. During the backpropagation process, the sigmoid derivative function is used and multipled between each layers. The problem is that this function lies in $(0, 1/4]$ and these multiplications make the gradient vanish the more it backpropagates it.
 Furthermore, because of this problem, the first layers of our Neural Network are slower to train than the last one and this might results in a huge inaccuracy at the end. For example in CNNs, as mentioned, first layers learn large features so that the next layers refined these features as much as it goes deeper. The vanishing gradient problem implies that the refined features will have in input corrupted information from the previous layers and therefore will not be able to learn useful patterns.
 
 \subsection{Regularization}
 
-One of the biggest problem that neural networks can encounter during its training phase is overfitting, meaning that it can predict very well on the training data but cannot generalize to new data. Figure[CITE]. Regularization tries to solve this overfitting problem by penalizing the objective function with a certain additional term.
+One of the biggest problem that neural networks can encounter during its training phase is \textbf{overfitting}, meaning that it can predict very well on the training data but cannot generalize to new data (\autoref{fig:gen}). Regularization tries to solve this overfitting problem by penalizing the objective function with a certain additional term.
 
-\textbf{ Figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{gen}
+\caption[Generalization problem explanation]{We say there the network is \textbf{overfitting} the training set when the training error continues to decrease while the test error is increasing - Here the figure explains the concept of \textbf{early stopping} to counter the overfitting problem}
+\label{fig:gen} 
+\end{figure}
+
+
 
 \[
 L_{reg}(\theta; X, y) = L(\theta; X, y) + \lambda \Omega(\theta)
@@ -524,7 +681,7 @@ The \textbf{$L_1$ regularization}, also known as the LASSO penalisation, tends t
 
 Another possible regularization during the training phase is to \textbf{increase the number of samples} in the dataset used. This can be done by generating new samples from the current dataset with some operations like flipping, rotating, clipping or adding noise.
 
-One of the mostly commonly used and simple technique is called the \textbf{early stopping}. This approach consists in evaluating the network on a validation set during the training phase after a certain number of step, e.g. after every epoch. Overfitting can therefore be detected if the current validation set evaluation is higher than the previous one. Commonly, it is set to stop the training after a certain number of evaluations with a lower accuracy than the previous best one. 
+One of the mostly commonly used and simple technique is called the \textbf{early stopping} (Explained in \autoref{fig:gen}). This approach consists in evaluating the network on a validation set during the training phase after a certain number of step, e.g. after every epoch. Overfitting can therefore be detected if the current validation set evaluation is higher than the previous one. Commonly, it is set to stop the training after a certain number of evaluations with a lower accuracy than the previous best one. 
 
 \subsection{Optimization}
 
