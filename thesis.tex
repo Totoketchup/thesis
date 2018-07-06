@@ -946,6 +946,86 @@ In this chapter we present in more detail the contributions mentioned in \ref{co
 \section{The Adaptive Layer}
 \label{adapt}
 
+
+\begin{figure}[h]
+\centering
+\resizebox {\textwidth} {!} {
+\begin{tikzpicture}
+
+    \node[anchor=east] at (0,0) (xmix) {$x  = \sum_{i=1}^M x_i$};
+    
+    \node[below=0.3cm of xmix] (xnm1) {$x_i$};
+    \node[below=-0.05cm of xnm1] (points) {$\vdots$};
+    \node[below=0.1 cm of points] (xnm) {$x_M$};
+	
+	\node[rectangle,-stealth, very thick, left=0cm of xmix, rounded corners=5mm, yshift=-1cm, xshift=-0.1cm, minimum height =3.5cm, minimum width=2.5cm, anchor= west] (inp) {};
+	
+	
+	
+	\node[rectangle,-stealth, draw=red!60, very thick, right=0.2cm of inp, rounded corners=5mm, minimum height =2cm, minimum width=4.3cm, anchor= west, label=Front-end layer] (rec) {};
+	
+	\node[rectangle, draw, thick, right=0.3cm of rec.west, fill=blue!30, minimum height=1cm,rounded corners=3mm] (1dconv) {1Dconv};
+	
+	\node[rectangle, draw, thick, right = 0.5cm of 1dconv, fill=blue!30, minimum height=1cm, rounded corners=3mm] (maxpool) {maxpool};
+	
+	
+	
+	\node[rectangle,-stealth, draw=blue!30, very thick, right=0.2cm of rec, rounded corners=5mm, minimum height =3cm, minimum width=2.5cm, anchor= west, label=Separation, yshift=-0.5cm] (sep) {};
+	
+	\node[rectangle, draw, thick, below right=0.1cm and 0.6cm of sep.west, fill=blue!30, minimum height=1cm,rounded corners=3mm] (mask) {masks};
+			
+	\node[circle, draw, thick, right=1.55cm of maxpool.east, minimum width=0.1cm, fill=red!30,inner sep=0pt] (mul1) {$\times$}; 
+
+
+
+    \node[rectangle,-stealth, draw=red!60, very thick, right=0.2cm of sep, rounded corners=5mm, minimum height =2cm, minimum width=3.95cm, anchor= west, label=Back-end layer, yshift=0.5cm] (back) {};
+	
+	\node[rectangle, draw, thick, right=0.3cm of back.west, fill=blue!30, minimum height=1cm,rounded corners=3mm] (unpool) {unpool};
+	
+	\node[rectangle, draw, thick, right = 0.5cm of unpool, fill=blue!30, minimum height=1cm, rounded corners=3mm] (deconv) {deconv};
+	
+
+    
+\draw[very thick,->,>=stealth] (inp.east) -- (1dconv.west);
+\draw[very thick,->,>=stealth] (1dconv.east) -- (maxpool.west);
+
+\draw[very thick] (inp.north east) -- (inp.south east);
+
+\draw[very thick,->,>=stealth] (inp.east) -- (1dconv.west);
+\draw[very thick,->,>=stealth] (mask.north) -- (mul1.south);
+\draw[very thick,->,>=stealth] (maxpool.east) -- node[above,pos=0.75] {$X$} (mul1.west);
+
+\draw[very thick,->,>=stealth] (maxpool.east) -- ++(0.7,0) |- node[below,pos=0.7] {$X_i$} (mask.west);
+
+\draw[very thick,->,>=stealth] (mul1.east) -- node[above,pos=0.4] {$\tilde X_i$} (unpool.west);
+\draw[very thick,->,>=stealth] (unpool.east) -- (deconv.west);
+
+\draw[very thick,->,>=stealth,rounded corners=3mm] (maxpool.south) -- ++(0,-1.8) -| node[below,pos=0.25] {argmax} (unpool.south);
+
+\node[rectangle,-stealth, very thick, right=0cm of back.east, rounded corners=5mm, yshift=-0.cm, xshift=0.3cm, minimum height=2.3cm, minimum width=0.cm, anchor= west] (out) {};
+
+\node[above right=0.4cm and 0.5cm of back.east] (rxnm1) {$\tilde x_i$};
+\node[below=-0.05cm of rxnm1] (rpoints) {$\vdots$};
+\node[below=0.1 cm of rpoints] (rxnm) {$\tilde x_M$};
+	
+\draw[very thick,->,>=stealth] (deconv.east) -- (out.west);
+	
+	
+\draw[very thick] (out.north west) -- (out.south west);
+
+	
+
+%\draw[->,>=stealth] (xnm1.east) |- ($(1dconv.north west)!0.5!(1dconv.south west)$);
+%\draw[thin,->,>=stealth, dotted] (points.east) |- ($(1dconv.north west)!0.6!(1dconv.south west)$);
+%\draw[->,>=stealth] (xnm.east) |- ($(1dconv.north west)!0.7!(1dconv.south west)$);
+
+\end{tikzpicture}
+}
+\caption[Architecture of the Adaptive Layer]{Architecture of the Adaptive layer}
+\label{fig:lstm}
+\end{figure}
+
+
 The main idea in this section is based on an end-to-end architecture presented in \cite{Adaptive}. This work shows that the use of a non linear autoencoder directly on audio mixture can lead to better performances than using the DCT of these latter. This autoencoder consists in two main parts, as explained in Section \ref{AE}, a front-end creating a latent representation of the input and a back-end reconstruction the input.
 
 Our idea is to apply such an approach to the current deep learning state of the art methods - in this study DPCL and SCE - in order to see if this method can lead to any improvement.
