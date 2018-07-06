@@ -422,17 +422,15 @@ The chained structure is kept but cells do not interact with the input the same 
 
 \node[draw=black, minimum width=6mm, circle, fill={rgb:orange,1;yellow,2;pink,5},label=270:$x_t$] (x) at (0,0) {};
 
-\node[minimum width=6mm, left of=x, yshift=1.3cm, xshift=-1.0cm] (yt1) {$y_{t-1}$};
+\node[draw=black, minimum width=6mm, circle, fill={rgb:red,4;green,1;blue,0},label=180:$y_{t-1}$, left of=x, yshift=1.3cm, xshift=-1.0cm] (yt1) {};
 
-
-
-	\draw[-stealth, very thick, gray, above=2pt of x, rounded corners=10mm, yshift=0.8cm, xshift=-1.2cm] rectangle (8.4, 4.8);
+	\draw[-stealth, very thick, gray, above=2pt of x, rounded corners=10mm, yshift=0.8cm, xshift=-1.2cm] rectangle (8.1, 4.95);
 
 	\draw[-stealth, very thick, red!50, above=2pt of x, rounded corners=5mm, yshift=1.0cm,xshift=-0.75cm] rectangle (1.5, 4.2) node[midway, above, yshift=2cm] {forget} ;
 
 	\draw[-stealth, very thick, green!50, above=2pt of x, rounded corners=5mm, yshift=1.0cm,xshift=0.95cm] rectangle (3.0, 4.2) node[midway, above, yshift=2cm] {input};
 
-\draw[-stealth, very thick, blue!50, right= of x, rounded corners=5mm, yshift=1.0cm,xshift=4.1cm] rectangle (2.5, 4.2) node[midway, above, yshift=2cm] {output};
+\draw[-stealth, very thick, blue!50, right= of x, rounded corners=5mm, yshift=1.0cm,xshift=4.1cm] rectangle (2.4, 4.2) node[midway, above, yshift=2cm] {output};
 
 
 \node[rectangle, draw, thick, above of= x, fill=blue!30, yshift=1.25cm] (sig1) {$\sigma$}; 
@@ -450,11 +448,11 @@ The chained structure is kept but cells do not interact with the input the same 
 \node[circle, draw, thick, above of= sig1, minimum width=0.1cm, fill=red!30, yshift =1.5cm,inner sep=0pt] (mul1) {$\times$}; 
 
 
-\node[minimum width=6mm, left= of mul1, xshift=-0.3cm] (ct1)  {$c_{t-1}$};
+\node[draw=black, minimum width=6mm, circle, fill={rgb:red,1;green,4;blue,0.5},label=180:$c_{t-1}$, left= of mul1, xshift=-0.3cm] (ct1)  {};
 
-\node[minimum width=6mm, right= of ct1, xshift=8cm] (ct)  {$c_{t}$};
+\node[draw=black, minimum width=6mm, circle, fill={rgb:red,1;green,4;blue,0.5},label=0:$c_{t}$, right= of ct1, xshift=7.7cm] (ct)  {};
 
-\node[minimum width=6mm, right= of yt1, xshift=8cm] (yt)  {$y_{t}$};
+\node[draw=black, minimum width=6mm, circle, fill={rgb:red,4;green,1;blue,0},label=0:$y_{t}$, right= of yt1, xshift=7.7cm] (yt)  {};
 
 
 \node[circle, draw, thick,above of=mul2,, minimum width=0.1cm, fill=red!30,inner sep=0pt] (add) {$+$}; 
@@ -475,15 +473,15 @@ The chained structure is kept but cells do not interact with the input the same 
 \draw[thick,->,>=stealth] (tanh2.north) -| (mul2.south);
 
 
-\draw[thick,->,>=stealth] (sig1.north) -- (mul1.south);
+\draw[thick,->,>=stealth] (sig1.north) -- node[left,pos=0.75] {$f_t$} (mul1.south);
 
 \draw[thick,->,>=stealth] (ct1.east) -- (mul1.west);
 
 \draw[thick,->,>=stealth] (mul1) -- (add);
-\draw[thick,->,>=stealth] (mul2) -- (add);
+\draw[thick,->,>=stealth] (mul2) -- node[left,pos=0.5] {$i_t$} (add);
 \draw[thick,->,>=stealth] (tanh3) -- (mul3);
 \draw[thick] (x) -- (0,1.29);
-\draw[thick] (add) -- (ct);
+\draw[thick,->,>=stealth] (add) -- (ct);
 \draw[thick,rounded corners] (mul3) |- (yt);
 
 
@@ -869,8 +867,31 @@ We implement this layer to first reproduce the results of DPCL \cite{DPCLV2} and
 
 \section{Source Contrastive Estimation (SCE)}
 
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{\textwidth}
+\includegraphics[width=\textwidth]{training}
+\captionsetup{justification=centering}
+\caption{Training phase of SCE}
+\label{fig:training} 
+\end{subfigure}
+\\
+\begin{subfigure}[b]{\textwidth}
+\includegraphics[width=\textwidth]{inference}
+\captionsetup{justification=centering}
+\caption{Inference phase of SCE}
+\label{fig:inference} 
+\end{subfigure}
+\caption[Architecture of SCE approach - Training and Inference phases]{ Architecture of the Source Contrastive Estimation method. In \autoref{fig:training} is described the training phase: it consists in producing discriminative embeddings from a mixture spectrogram and then pulling together embeddings from a specific speaker or pushing away embeddings from a different speaker via the loss function defined in this section. In \autoref{fig:inference}, the inference phase consists in producing embeddings and applyting a clustering algorithm such as k-means in order to produce masks and separate each source from the mixture - the figures are from \cite{SCE}}
+\label{fig:sce} 
+
+\end{figure}
+
 The Source Contrastive Estimation method (SCE) \cite{SCE} is based on the same approach than Deep Clustering consisting in generating contrastive embeddings in order to apply clustering, create masks and separate all the sources. This method is based on the \textit{word2vec} work.
 Instead of learning to approximate the affinity matrix $A = YY^{T}$, the Source Contrastive Method applies a stronger constraint on the generated embeddings. \textbf{TODO : details}
+
+\
+
 
 \[L(\theta) = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(Y_{t,f}^{(s)} \cdot v_i(t,f)^{T} v_o^{(s)})\]
 
@@ -879,6 +900,12 @@ This loss function tends to pull together embeddings and speaker vector from the
 
 \section{Deep Attractor Network (DANet)}
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\textwidth]{danet}
+\caption[Deep Attractor Network Architecture]{ Deep Attractor Network (DANet) organisation. During the training phase DANet use the ideal masks produced from the mixture to compute the attractors and then compute the associated masks to separate each source and apply its loss function. During the inference phase, DANet uses the K-means algorithm to cluster the embedded space and construct the attractors - Figure from \cite{DANet}}
+\label{fig:danet}
+\end{figure}
 
 Introduction to DAnet approach
 
@@ -1025,6 +1052,8 @@ The loss function used for such network is therefore:
 
 \[L(\theta) = L_{SCE}(\theta) + L_{DANet}(\theta)\]
 \[L(\theta) = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(Y_{t,f}^{(s)} \cdot v_i(t,f)^{T} v_o^{(s)}) + \frac{1}{M} \norm{x \cdot (m_i - \tilde{m_j})}^2_2\]
+
+Once the network is trained on this loss function, we don't use the masks we would get following the DANet method consisting in computing the attractors and then obtaining the masks through $m = sigmoid(d)$. Instead as it is done in the SCE approach, we compute k-means on the embedded space and then obtain the masks. One extension of this method would be to follow DANet approach to construct the masks.
 
 We show in Section~\ref{DANET} that this approach is leading to better results for a mixture of 2 speakers of different and same gender.
 
