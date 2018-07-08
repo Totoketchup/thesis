@@ -35,7 +35,7 @@
 \esupervisor{Hiroshi Imai}
 \jsupervisor{今井 浩}
 \supervisortitle{Professor} % Professor, etc.
-\date{January 29, 2018}
+\date{July 11, 2018}
 %-------------------
 \begin{document}
 
@@ -46,19 +46,19 @@ The complexity of sound, its noisy character and the overlapped information make
 
 One of the first successful approach for this problem was to use non-negative matrix factorization (NMF), sparse NMF and later convolutional NMF but these methods had some drawbacks because of their linearity, cost and weak representation.
 
-With the arrival of Deep Learning in audio signal processing, improvements have been made in denoising, audio classification, and mostly in Natural Language Processing  (NLP) with the recent WaveNet and Tacotron 2 architectures. In the recent years new techniques involving Deep Learning were proposed and are performing quite well in the Multi-Speaker Separation problem. These latter are based on producing masks for mixed spectrograms to separate voices. To do so, they apply bidirectional recurrent neural networks on spectrograms trained to produce embeddings representing each speaker. This created embedded space allows to apply unsupervised algorithms such as k-means to segment the spectrograms and create binary masks. Contrary to the previous class-based segmentation methods, these new approaches are partition-based segmentation and lead to a speaker-independent inference and therefore easier generalization and precision. These approaches could reach more than 11dB improvement for the Signal to Distortion Ratio (SDR) in average for separating male and female mixed voices.
+With the arrival of Deep Learning in audio signal processing, improvements have been made in denoising, audio classification, and mostly in Natural Language Processing  (NLP) with the recent WaveNet and Tacotron 2 architectures. In the recent years new techniques involving Deep Learning were proposed and are performing quite well in the Multi-Speaker Separation problem. These latter are based on producing masks for mixed spectrograms to separate voices. To do so, these methods apply bidirectional recurrent neural networks on spectrograms trained to produce embeddings representing each speaker. This created embedded space allows to apply unsupervised algorithms such as k-means to segment the spectrograms and create binary masks. Contrary to the previous class-based segmentation methods, these new approaches are partition-based segmentation and lead to a speaker-independent inference and therefore easier generalization and precision. These approaches could reach more than 11dB improvement for the Signal to Distortion Ratio (SDR) in average for separating male and female mixed voices.
 
 But these methods still struggle to separate mixed voices of the same gender and thus struggle to separate more than three voices from a single input channel. We presume that this problem might be mainly due to the overlapping frequencies in the mixed spectrograms when the same genders are speaking. To overcome this issue, we replace the use of spectrograms and propose a new approach consisting in using a sparse linear autoencoder, named 'adaptive layer', added to the current state of the art methods, namely the Deep Clustering (DPCL) and Source Contrastive Estimation (SCE) approaches. This autoencoder is composed of two main parts, a front-end layer and a back-end layer, and is able to take in input raw mixed audio signals and output separated audio signals. 
 
-In this study, we compare the SDR improvements with and without the adaptive layer for a mixture of different speakers. Furthermore, we improve the SCE approach using methods introduced by Deep Clustering and other new regularization methods, we show that we can increase the SDR improvement of SCE method by 1.14dB.
-
+In this study, we compare the SDR improvements with and without the adaptive layer for a mixture of different speakers. We show promising results with this new layer that can enhance Deep Clustering results.
+Furthermore, we improve the SCE approach using methods introduced by Deep Clustering and other new regularization methods. We improvement the SCE method by dB
 \end{eabstract}
 
 \maketitle
 
 \begin{acknowledge}
 
-Firstly, I would like to express my gratitude to my supervisor Hiroshi Imai for his support and wise advice all along this thesis, in addition, I would like to deeply thank Hidefumi Hiraishi and Naoto Ohsaka who helped me a lot over these years. I would also like to thank Doctor Yoshizoe of RIKEN AIP for all his feedback and support, and for accepting me in his unit as a trainee and allowing me to use RAIDEN computer without which I would not have been able to realize all this work.
+Firstly, I would like to express my gratitude to my supervisor Hiroshi Imai for his support and wise advice all along this thesis, in addition, I would like to deeply thank Hidefumi Hiraishi and Naoto Ohsaka who helped me a lot over these years. I would also like to thank Doctor Kazuki Yoshizoe of RIKEN AIP for all his feedback and support, and for accepting me in his research unit as a trainee and allowing me to use RAIDEN computer without which I would not have been able to realize all this work.
 
 Secondly, I would like to especially thank Natalia Jarzebska and Dea Luma for all their support throughout these 2 years and a half in Japan, having them by my side was a huge source of motivation and inspiration. Thank you for all your advice, for having listened to me, and for all the amazing moments we spent together, I will never forget everything you did for me.
 
@@ -804,7 +804,7 @@ In our study, we use both RMSProp and Adam optimizers and select the one leading
 
 In this chapter, we firstly discuss about the previous methods used to perform the multi speaker separation problem and secondly, since our study is mainly based on these works, we explain in more details both versions of Deep Clustering, the Source Contrastive Estimation and the Deep Attractor Network methods.
 
-Firstly, \cite{Weintraub:1985:TCM:912498} and \cite{ GRAPS} are one of the very first works from M. Weintraub trying to separate two different speakers using Markov Models to infer binary masks. He introduced the GRAPS (Grouping Research on Auditory Sound Processing) method which uses onset and pitch features of speeches in order to extract useful information about the speakers and being able to separate them.
+Firstly, \cite{Weintraub:1985:TCM:912498} and \cite{GRASP} are one of the very first works from M. Weintraub trying to separate two different speakers using Markov Models to infer binary masks. He introduced the GRASP (Grouping Research on Auditory Sound Processing) method which uses onset and pitch features of speeches in order to extract useful information about the speakers and being able to separate them.
 Following this work, Computational Auditory Scene Analysis systems (CASA) \cite{CASA1, CASA2} were introduced. They are systems extracting sounds components and are based on the biological inspiration from the Auditory Scene Analysis (ASA) \cite{ASA}. They try to reproduce source organization achieved by human beings using two main steps: the segmentation phase and grouping phase. Firstly, the segmentation phase extracts information such as harmonicity, pitch, coherent amplitude, or onsets, and then the grouping phase clusters features having similar characteristics to achieve the separation. But since these systems are mostly hand-crafted for the feature extraction they can not perform well on very noisy environments and therefore on real world application. 
 
 Factorization models such as the Non Negative Matrix Factorization \cite{SNMF, NMFalgo} (NMF or NNMF) consist in learning in a supervised or unsupervised manner a good factorization of a learned dictionnary and activatons bases from spectrograms magnitudes. Then the learned bases can be used to separate the speaker voice they are associated to. But NMF methods are very costly and generate weak representation for the source separation problem. Moreover, NMF struggles to generalize to new environments and voices, it is more successful in structured signals like in music.
@@ -907,37 +907,29 @@ This loss function tends to pull together embeddings and speaker vector from the
 \label{fig:danet}
 \end{figure}
 
-Introduction to DAnet approach
-
-Difference with DPCL and SCE
-
-Loss function
+Deep Attractor Network (DANet) \cite{DANet} method has been proposed 
+after Deep Clustering and and is using the same atchitecture than this latter. Compared to SCE and Deep Clustering, DANet can directly infers the separation masks from the outputted discriminative embeddings. To do so, DANet creates what the authors are calling \textbf{attractors}, they are the mean vectors of the embeddings belonging to each speaker, this embedded vectors can be seen as a speaker identifier vector and are defined as:
 
 \[a_s = \frac{\sum_{t,f}{Y_{(t,f)}^{(s)}V_{t,f} }}{\sum_{t,f}{Y_{(t,f)}^{(s)}}} = \frac{{Y_s^TV}}{\sum_{t,f}{Y_{(t,f)}^{(s)}}}\]
 
+Here, $Y_s$ represents the binary mask extraction the $s^{th}$ speaker and $V$ is the dicriminative embeddings outputted by the deep neural network.
+Then, masks are computed using the inner product between these attractors $a_s$ and the outputted embeddings $d_s$ for each speaker:
+
 \[d_s = a_sV, s = 1,..., M \]
-\[\tilde{m_s} = f(d_s)\]
 
-\[L_\theta(x) = \frac{1}{M} \norm{x \cdot (m_i - \tilde{m_j})}^2_2 \]
+Finally, to project these assignements into the $[0, 1]$ interval, the $sigmoid$ or $softmax$ functions, defined here as $f()$, are applied on $d_s$:
 
-In their paper, the authors propose two approaches during inference phase for the DANet architecture. The first one is ,like in the previous methods presented, using K-Means algorithm in order to generate masks and separate each speaker voice. The second one consists in using fixed attractors that are chosen using the centroids returned by K-Means algorithm.
+\[\tilde{m_s} = f(d_s) \in [0,\dots,1] \]
 
-\chapter{Experiments}
+Once masks are inferred, these latter are compared to  ideal binary masks using the $L_2$ loss:
 
-\section{Environment}
+\[L_\theta(x) = \sum_{i=1}^{M} \norm{X \cdot (m_j - \tilde{m_j})}^2_2 \]
 
-The framework used for all our deep learning architecture is TensorFlow r1.9 \cite{TF} and the experiments were conducted using RAIDEN Computer System provided by RIKEN AIP. This system has nodes with NVIDIA DGX 100 composed of 8 Nvidia Tesla V100-SXM2-16GB of 15GB of RAM. Our experiments were computed on a single GPU but our implementation makes them runnable on multiple GPUs. 
+During the training phase, the network is taught to produce the best reconstruction possible via binary masks. 
 
-To evaluate our experiments in terms of Signal to Distortion Ratio (SDR) and Signal to Interference Ratio (SIR) improvements, we used the BSS\_EVAL toolbox \cite{BSS}. Since we are working on NVIDIA DGX 100, and that these later are shared among RAIDEN users GPU, using the BSS\_EVAL Python module on CPU can be  very slow when the CPU shared. Therefore, to speed-up the testing phase, we implemented the BSS\_EVAL toolbox with CuPy \cite{cupy} and TensorFlow r1.9 in order to run all the experiments fully on GPUs - note that this new implementation is only compatible with TensorFlow r1.9, which is the first version capable of handling \textit{complex128} numbers for the $FFT$ operation and therefore having good enough precision to deliver similar results as the original CPU-version module
+During the inference phase, since the assignements of each TF-bin is unknown, attractors are computed using K-means algorithm. In DANet paper, it is shown that using K-means is leading to the best results. The authors compared this approach with the use of fixed attractors computed from a test set, but this method is limitations the generalization efficiency of the network since these fixed attractors are based on known data and therefore make the method less flexible.
 
-\section{LibriSpeech ASR Corpus and optimization}
-
-For all the experiments conducted in our study we used the LibriSpeech ASR Corpus \cite{LIBRI}. From this dataset, we used the \textit{train-clean-100} set containing 100 hours of 125 women and 126 men speeches. This dataset was split in three parts: the training representing 80\%, the validation 10\% and the test 20\% set. Another set was created with \textit{test-other-clean} to evaluate our models on \textit{out-of-set} speaker mixtures. For computational speed up and memory savings we downsampled the audio signals from 16kHz to 8kHz.
-When spectrograms are used as input, we computed the Short Time Fourier spectral magnitudes for each mixture with a window size of 32 ms (256 samples), a hop size of 8 ms (64 samples) with the square root of the Hann as window. From these spectrograms were build the ideal binary masks $Y$ by evaluating the dominant speaker for each $(t,f)$ bin.
-
-In our implementation, we do not precompute the spectrogram magnitudes and store them like it is usually done. We directly use the raw audio files as inputs because our models have to be able to compare their results on the same audio files using the Adaptive layer or spectrogram magnitudes. To do so, we stored the audio signals in \textit{.tfrecords} files that are processed by the \textit{tf.data.Dataset} API. Using directly the TensorFlow format file and API for data importation enables the use of operations such as \textit{tf.data.map} allowing the manipulation of audio files on multiple processes and \textit{tf.data.prefetch} which is prefetching next batches on the CPU while the previous one are computed on the GPU.
-All these optimized operations for the input data generation leads to a significant speed-up for large batches of 256 elements. A good advantage of this method is that it can randomly generate many different mixtures with different chunk sizes, number of speakers and genders without to have to store the inputs on the hard disk - random states are set constant during the training phase in order to have reproducible results. But one drawback is that it is computing exactly the same inputs every epochs and therefore can be seen as quite time consuming.
- Furthermore, since the non-chunked raw data are stored, our implementation is capable to generate chunked mixtures of different size and therefore can generate. All our code can be found at \cite{github}.
+In \autoref{contrib:danet}, we add DANet loss function to the SCE approach as a regularization for the training phase.
 
 \chapter{Contributions}
 
@@ -1021,8 +1013,8 @@ In this chapter we present in more detail the contributions mentioned in \ref{co
 
 \end{tikzpicture}
 }
-\caption[Architecture of the Adaptive Layer]{Architecture of the Adaptive layer}
-\label{fig:lstm}
+\caption[Architecture of the Adaptive Layer during the pretraining phase]{Architecture of the Adaptive layer during the \textbf{pretraining phase}. The inputs are the audio mixture concatenated with each original speech. These latter are fed to the Front-end and masks are computed from the original speech latent representation. Finally, these masks are applied on the mixture latent representation and reconstructed via the back-end layer. }
+\label{fig:adaptpret}
 \end{figure}
 
 
@@ -1032,7 +1024,7 @@ Our idea is to apply such an approach to the current deep learning state of the 
  
 First of all, since Deep Clustering and Source Constrastive Estimation methods are not trained in an end-to-end way, meaning that the output of the network during the training phase does not lead to the reconstruction of the separated signals, then it is impossible to simply add such an architecture '\textit{around}' the deep neural architectures and train it as a whole. In fact, if we want to train one of these methods using an autoencoder, then only its front-end part can be plug on since the network does not output separated inputs and therefore the autoencoder can not be trained during the training phase of these two methods. Moreover, if only the front-end is used during the training phase then the latent representation will not have any sense in terms of feature extraction since the reconstruction phase is absent. 
 
-The solution we propose consists in pretraining the autoencoder for the multi-speaker separation problem. The main difference with standard autoencoders is that in this case we do not train to reconstruct the input but to reconstruct the separated signals. To do so, the autoencoder is \textbf{(1)} fed with a \textbf{mixture of signals and the original signals from this mixture}, then \textbf{(2)} computes the separation and \textbf{(3)} reconstructs each separated signals.
+The solution we propose consists in pretraining the autoencoder ( \autoref{fig:adaptpret} for the multi-speaker separation problem. The main difference with standard autoencoders is that in this case we do not train to reconstruct the input but to reconstruct the separated audio speeches. To do so, the autoencoder is \textbf{(1)} fed with a \textbf{mixture of signals and the original signals from this mixture}, then \textbf{(2)} computes the separation and \textbf{(3)} reconstructs each separated signals.
 
 To perform these three operations, we present a \textbf{sparse linear autoencoder} consisting of a front-end layer, a separation operation and a back-end layer. The front-end layer is a one-dimensional convolution operation and a max-pooling layer and the back-end layer is composed by an unpooling and a deconvolution layer.
 
@@ -1054,7 +1046,7 @@ This maxpooling layer is a non-linear operation but for $M = 2$, we can suppose 
 
 \[m_j = \frac{X_j}{\sum_j{X_j} + \epsilon} \simeq  \frac{X_j}{X + \epsilon}\]
 
-The it suffices to apply these masks on the mixture representation to have the separated signals:
+The it suffices to apply these masks on the mixture representation to have the separated audio speeches:
 
 \[\tilde X _j = m_j \cdot X\]
 
@@ -1066,6 +1058,149 @@ The it suffices to apply these masks on the mixture representation to have the s
 
 The overlapping loss function is added in order to reduce the overlapped number of information and therefore push out model to learn good bases functions to distinguish well each signals. This loss is comparing each couples of the sparse representations generated by the front-end layer (without considering the one involving the mixture of all the signals). For a couple $(X_1,X_2)$
 \[overlapping(X1, X2) = \] 
+
+
+\begin{figure}[h]
+\centering
+\resizebox {\textwidth} {!} {
+\begin{tikzpicture}
+
+    \node[anchor=east] at (0,0) (xmix) {$x  = \sum_{i=1}^M x_i$};
+    
+    \node[below=0.3cm of xmix] (xnm1) {$x_i$};
+    \node[below=-0.05cm of xnm1] (points) {$\vdots$};
+    \node[below=0.1 cm of points] (xnm) {$x_M$};
+	
+	\node[rectangle,-stealth, very thick, left=0cm of xmix, rounded corners=5mm, yshift=-1cm, xshift=-0.1cm, minimum height =3.5cm, minimum width=2.5cm, anchor= west] (inp) {};
+	
+	
+	
+	\node[rectangle,-stealth, draw=red!60, very thick, right=0.2cm of inp, rounded corners=5mm, minimum height =2cm, minimum width=4.3cm, anchor= west, label=Front-end layer] (rec) {};
+	
+	\node[rectangle, draw, thick, right=0.3cm of rec.west, fill=blue!30, minimum height=1cm,rounded corners=3mm] (1dconv) {1Dconv};
+	
+	\node[rectangle, draw, thick, right = 0.5cm of 1dconv, fill=blue!30, minimum height=1cm, rounded corners=3mm] (maxpool) {maxpool};
+	
+	
+	
+	\node[rectangle,-stealth, draw=blue!30, very thick, right=0.2cm of rec, rounded corners=5mm, minimum height =2cm, minimum width=3.7cm, anchor= west, label=Deep Learning Sep.] (sep) {};
+	
+			
+\node[rectangle, draw, thick, right = 0.5cm of sep.west, fill=blue!30, minimum height=1cm, rounded corners=3mm] (blstm) {blstm};
+
+\node[rectangle, draw, thick, right = 0.5cm of blstm.east, fill=blue!30, minimum height=1cm, rounded corners=3mm] (ffn) {FFN};
+
+	
+	\node[rectangle, draw, thick, below =0.2 of sep.south, fill=blue!30, minimum height=1cm,rounded corners=3mm] (mask) {IBM};
+	
+\node[right = 0.5cm of sep.east] (out) {$V_i$};
+
+\node[right = 0.5cm of out.east] (loss) {$L(\theta)$};
+
+
+
+    
+\draw[very thick,->,>=stealth] (inp.east) -- (1dconv.west);
+\draw[very thick,->,>=stealth] (1dconv.east) -- (maxpool.west);
+\draw[very thick,->,>=stealth] (maxpool.east) -- (blstm.west);
+\draw[very thick,->,>=stealth] (blstm.east) -- (ffn.west);
+\draw[very thick,->,>=stealth] (ffn.east) -- (out.west);
+
+\draw[very thick,->,>=stealth] (out.east) -- (loss.west);
+\draw[very thick,->,>=stealth] (mask.east) -| node[right,pos=0.7] {$Y_i$} (loss.south);
+
+
+\draw[very thick] (inp.north east) -- (inp.south east);
+
+\draw[very thick,->,>=stealth] (inp.east) -- (1dconv.west);
+
+\draw[very thick,->,>=stealth] (maxpool.east) -- ++(0.37,0) |- node[below,pos=0.7] {$X_i$} (mask.west);
+
+
+	
+
+%\draw[->,>=stealth] (xnm1.east) |- ($(1dconv.north west)!0.5!(1dconv.south west)$);
+%\draw[thin,->,>=stealth, dotted] (points.east) |- ($(1dconv.north west)!0.6!(1dconv.south west)$);
+%\draw[->,>=stealth] (xnm.east) |- ($(1dconv.north west)!0.7!(1dconv.south west)$);
+
+\end{tikzpicture}
+}
+\caption[Architecture of the Adaptive Layer during the training phase of Deep Learning separation architectures]{Architecture of the Adaptive Layer during the training phase of Deep Learning separation architectures. The inputs are the audio mixture concatenated with each original speech. These latter are fed to the Front-end and ideal binary masks are computed from the original speech latent representations. Finally, the computed latent representation of the mixture is fed as input of the deep neural network, such as Deep Clustering or SCE, and the loss function is computed to update the separator weight using the backpropagation algorithm. }
+\label{fig:adapttrain}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\resizebox {\textwidth} {!} {
+\begin{tikzpicture}
+
+    \node[anchor=east] at (0,0) (xmix) {$x  = \sum_{i=1}^M x_i$};
+	
+	\node[rectangle,-stealth, very thick, left=0cm of xmix, rounded corners=5mm, xshift=-0.1cm, minimum height =2.cm, minimum width=2.5cm, anchor= west] (inp) {};
+	
+	
+	
+	\node[rectangle,-stealth, draw=red!60, very thick, right=0.2cm of inp, rounded corners=5mm, minimum height =2cm, minimum width=4.3cm, anchor= west, label=Front-end layer] (rec) {};
+	
+	\node[rectangle, draw, thick, right=0.3cm of rec.west, fill=blue!30, minimum height=1cm,rounded corners=3mm] (1dconv) {1Dconv};
+	
+	\node[rectangle, draw, thick, right = 0.5cm of 1dconv, fill=blue!30, minimum height=1cm, rounded corners=3mm] (maxpool) {maxpool};
+	
+	
+	\node[rectangle,-stealth, draw=blue!30, very thick, right=0.2cm of rec, rounded corners=5mm, minimum height =2cm, minimum width=5.8cm, anchor= west, label=Deep Learning Sep.] (sep) {};
+	
+			
+\node[rectangle, draw, thick, right = 0.5cm of sep.west, fill=blue!30, minimum height=1cm, rounded corners=3mm] (blstm) {blstm};
+
+\node[rectangle, draw, thick, right = 0.5cm of blstm.east, fill=blue!30, minimum height=1cm, rounded corners=3mm] (ffn) {FFN};
+
+\node[rectangle, draw, thick, right = 0.5cm of ffn.east, fill=blue!30, minimum height=1cm, rounded corners=3mm] (kmeans) {k-means};
+	
+
+	\node[circle, draw, thick, right=1.2cm of kmeans.east, minimum width=0.1cm, fill=red!30,inner sep=0pt] (mul) {$\times$}; 
+
+
+    \node[rectangle,-stealth, draw=red!60, very thick, right=0.6cm of mul, rounded corners=5mm, minimum height =2cm, minimum width=3.95cm, anchor= west, label=Back-end layer] (back) {};
+	
+		\node[rectangle, draw, thick, right=0.3cm of back.west, fill=blue!30, minimum height=1cm,rounded corners=3mm] (unpool) {unpool};
+	
+	\node[rectangle, draw, thick, right = 0.5cm of unpool, fill=blue!30, minimum height=1cm, rounded corners=3mm] (deconv) {deconv};
+	
+
+    
+\draw[very thick,->,>=stealth] (inp.east) -- (1dconv.west);
+\draw[very thick,->,>=stealth] (1dconv.east) -- (maxpool.west);
+
+\draw[very thick] (inp.north east) -- (inp.south east);
+
+\draw[very thick,->,>=stealth] (inp.east) -- (1dconv.west);
+
+
+\node[rectangle,-stealth, very thick, right=0cm of back.east, rounded corners=5mm, yshift=-0.cm, xshift=0.3cm, minimum height=2.3cm, minimum width=0.cm, anchor= west] (out) {};
+
+\node[above right=0.4cm and 0.5cm of back.east] (rxnm1) {$\tilde x_i$};
+\node[below=-0.05cm of rxnm1] (rpoints) {$\vdots$};
+\node[below=0.1 cm of rpoints] (rxnm) {$\tilde x_M$};
+	
+\draw[very thick,->,>=stealth] (deconv.east) -- (out.west);
+	
+\draw[very thick,->,>=stealth] (maxpool.east) -- (blstm.west);
+\draw[very thick,->,>=stealth] (blstm.east) -- (ffn.west);
+\draw[very thick,->,>=stealth] (ffn.east) -- (kmeans.west);
+\draw[very thick,->,>=stealth] (kmeans.east) -- node[above,pos=0.65] {$m_i$} (mul.west);
+\draw[very thick,->,>=stealth] (mul.east) -- node[above,pos=0.3] {$\tilde X_i$}  (unpool.west);
+
+\draw[very thick,->,>=stealth] (unpool.east) -- (deconv.west);
+
+\draw[very thick] (out.north west) -- (out.south west);
+
+\draw[very thick,->,>=stealth] (maxpool.east) -| ++(0.37,-1.5) -| node[right,pos=0.62] {$X$} (mul.south);
+
+\end{tikzpicture}
+}
+\caption[Architecture of the Adaptive Layer during the finetuning phase]{Architecture of the Adaptive layer during the finetuning phase.  }
+\label{fig:adaptfinetuning}
+\end{figure}
 
 In Section \ref{adapt}, we present the results with different hyperparameters for the pretraining phase of the Adaptive layer. Then we apply the pretrained front-end to DPCL and SCE to train these deep neural networks and we finally plug the back-end layer to finetune the whole network. But to be able to finetune the whole network, the clustering operation must be differentiable.
 
@@ -1124,6 +1259,7 @@ We show in Section \ref{softkmeans} that using soft k-means for the SCE method i
 
 
 \section{Combining DANet and SCE methods}
+\label{contrib:danet}
 
 One drawback of the Source Contrastive Loss function is its \textbf{locality}, because it is trained on each $(t,f)$ bins without being aware of the global context. For DANet, it is the contrary, it focuses on the globality of the context window by using weighted average vectors of generated discriminative embeddings and do not consider close relation between each embedded vector.
 Our approach is to consider both methods at the same time in order to apply local loss function with the SCE loss and giving more context by adding the DANet loss function.
@@ -1167,6 +1303,7 @@ In Section [cite] we show the performances of this approach with different value
 \section{General improvements of Source Contrastive Estimation}
 
 \subsection{Source Contrastive Estimation Silenced Loss}
+\label{contrib:silence}
 
 One drawback, we observed with the SCE objective function is that it is taking into account all the TF-bins embeddings $V \in R^{TF\times E}$ outputted by the neural network. The problem is that some of these TF-bins have very low energy and therefore are not very relevant since they don't hold much information about any specific speaker. Considering these almost silent bins is leading to a noisy training because some speaker embeddings will be equally trained on these noisy vectors and on the others holding much more information. Our solution implies to apply a mask on the loss function to omit these almost silent bins, as following:
 
@@ -1192,6 +1329,23 @@ Moreover, after the network has been fully trained on bigger chunks the enhance 
 
 We show in Sections \ref{ext}, \ref{enh} and \ref{finetuning} that these addings are indeed enhancing all methods in terms of SDR and SIR improvements.
 
+
+\chapter{Experiments}
+
+\section{Environment}
+
+The framework used for all our deep learning architecture is TensorFlow r1.9 \cite{TF} and the experiments were conducted using RAIDEN Computer System provided by RIKEN AIP. This system has nodes with NVIDIA DGX 100 composed of 8 Nvidia Tesla V100-SXM2-16GB of 15GB of RAM. Our experiments were computed on a single GPU but our implementation makes them runnable on multiple GPUs. 
+
+To evaluate our experiments in terms of Signal to Distortion Ratio (SDR) and Signal to Interference Ratio (SIR) improvements, we used the BSS\_EVAL toolbox \cite{BSS}. Since we are working on NVIDIA DGX 100, and that these later are shared among RAIDEN users GPU, using the BSS\_EVAL Python module on CPU can be  very slow when the CPU shared. Therefore, to speed-up the testing phase, we implemented the BSS\_EVAL toolbox with CuPy \cite{cupy} and TensorFlow r1.9 in order to run all the experiments fully on GPUs - note that this new implementation is only compatible with TensorFlow r1.9, which is the first version capable of handling \textit{complex128} numbers for the $FFT$ operation and therefore having good enough precision to deliver similar results as the original CPU-version module
+
+\section{LibriSpeech ASR Corpus and optimization}
+
+For all the experiments conducted in our study we used the LibriSpeech ASR Corpus \cite{LIBRI}. From this dataset, we used the \textit{train-clean-100} set containing 100 hours of 125 women and 126 men speeches. This dataset was split in three parts: the training representing 80\%, the validation 10\% and the test 20\% set. Another set was created with \textit{test-other-clean} to evaluate our models on \textit{out-of-set} speaker mixtures. For computational speed up and memory savings we downsampled the audio signals from 16kHz to 8kHz.
+When spectrograms are used as input, we computed the Short Time Fourier spectral magnitudes for each mixture with a window size of 32 ms (256 samples), a hop size of 8 ms (64 samples) with the square root of the Hann as window. From these spectrograms were build the ideal binary masks $Y$ by evaluating the dominant speaker for each $(t,f)$ bin.
+
+In our implementation, we do not precompute the spectrogram magnitudes and store them like it is usually done. We directly use the raw audio files as inputs because our models have to be able to compare their results on the same audio files using the Adaptive layer or spectrogram magnitudes. To do so, we stored the audio signals in \textit{.tfrecords} files that are processed by the \textit{tf.data.Dataset} API. Using directly the TensorFlow format file and API for data importation enables the use of operations such as \textit{tf.data.map} allowing the manipulation of audio files on multiple processes and \textit{tf.data.prefetch} which is prefetching next batches on the CPU while the previous one are computed on the GPU.
+All these optimized operations for the input data generation leads to a significant speed-up for large batches of 256 elements. A good advantage of this method is that it can randomly generate many different mixtures with different chunk sizes, number of speakers and genders without to have to store the inputs on the hard disk - random states are set constant during the training phase in order to have reproducible results. But one drawback is that it is computing exactly the same inputs every epochs and therefore can be seen as quite time consuming.
+ Furthermore, since the non-chunked raw data are stored, our implementation is capable to generate chunked mixtures of different size and therefore can generate. All our code can be found at \cite{github}.
 
 \chapter{Results}
 \label{res}
@@ -2041,9 +2195,9 @@ SCE ext + enh & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolu
 \hline 
 optimizer & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
-SCE  & - & - & 12.04 & 18.88 & 9.94 & 15.53 \\ 
+SCE  & 9.27 & 14.96 & 12.04 & 18.88 & 9.94 & 15.53 \\ 
 SCE + NS & x & x & x & x & 10.49 & 16.55 \\ 
-SCE + DANet  & - & - & - & - & - & - \\ 
+SCE + DANet  & 9.23 & 15.07 & 11.95 & 18.79 & 10.22 & 15.81 \\ 
 \hline 
 \hline 
 Adapt SCE  & 6.99 & 12.01 & 10.01 & 15.68 & 8.63 & 13.88 \\ 
@@ -2062,39 +2216,23 @@ Adapt SCE + DANet  & 8.36 & 13.87 & 11.06 & 17.58 & 9.26 & 14.76 \\
 
 \begin{table}[h]
 \begin{tabular}{c|c|c|c|c|c|c}
-SCE chunk 400 - finetuned & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
+SCE finetuned & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
 \hline 
-optimizer & SDR & SIR & SDR & SIR & SDR & SIR \\ 
+method & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
-RMSProp $1e^{-3}$  & - & - & - & - & - & - \\ 
+SCE  & - & - & & & 11.30 & 17.34 \\ 
+SCE + NS & x & x & x & x & \textbf{11.59} & \textbf{18.02} \\ 
+SCE + DANet  & 10.28 & 16.51 & 12.92 & 20.05 & 11.42 & 17.78 \\ 
+\hline 
+\hline 
+Adapt SCE  &  & &  & & &  \\ 
+Adapt SCE + NS & x & x & x & x & & \\ 
+Adapt SCE + DANet  & & & & & & \\ 
+
 \end{tabular}
 \captionsetup{justification=centering}
 \caption{}
-\label{table:SCEfinetuning}
-\end{table}
-
-\begin{table}[h]
-\begin{tabular}{c|c|c|c|c|c|c}
-Adapt SCE+DANet - finetune & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
-\hline 
-opt & SDR & SIR & SDR & SIR & SDR & SIR \\ 
-\hline
-RMSProp $1e^{-3}$   & - & - & - & - & - & - \\ 
-\end{tabular}
-
-\caption{•}
-\end{table}
-
-
-\begin{table}[h]
-\begin{tabular}{c|c|c|c|c|c|c}
-Adapt SCE - finetune & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
-\hline 
-opt & SDR & SIR & SDR & SIR & SDR & SIR \\ 
-\hline
-RMSProp $1e^{-3}$ - 0.0  & - & - & - & - & - & - \\ 
-\end{tabular}s
-\caption{}
+\label{table:SCE400enh}
 \end{table}
 
 
@@ -2220,7 +2358,7 @@ One drawback of our approach is due to all the training phases necessary to conv
 
 To conclude, we have shown in this study that using an architecture such as the presented Adaptive layer can enhance the results of current state of the art methods for the multi speaker separation problem involving 2 speakers. Even though this layer is still not extendable to more than 2 speakers, these results are promising and further research in this direction could lead to a new network capable of fully reconstructing separated signals for many speakers.
 We have shown as well that the Source Contrastive Estimation can significantly be improved using methods such as combining it with the DANet objective function, using negative sampling and using techniques brought by the Deep Clustering method.
-We think that a good extension of this work would be not to pretrain the Adaptive Layer like we did in this study but use it directly in an end-to-end way. A good approach would be to apply it to ADANet \cite{DANet2} network and train the whole network in one global step, this might lead to a better latent representation for the multi speaker separation problem.
+We guess that a good extension of this work would be not to pretrain the Adaptive Layer like we did in this study but use it directly in an end-to-end way. A good approach would be to apply it to ADANet \cite{DANet2} network and train the whole network in one global step, this might lead to a better latent representation for the multi speaker separation problem.
 
 
 
