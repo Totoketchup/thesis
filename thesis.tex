@@ -1536,6 +1536,54 @@ As we can see in the Table [CITE], the best results obtained are for a window of
 For the rest of this study we will use the pretrained model with $256$ filters and a window size of $1024$ as our Adapt layer for the Deep Clustering and Source 
 Contrastive Estimation methods. In the following paragraphes, we analyze this specific selected model.
 
+
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{purple_front_window}
+\caption{Window}
+\label{fig:win} 
+\end{subfigure}
+~
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{bw1-f}
+\captionsetup{justification=centering}
+\caption{Conv filters}
+\label{fig:bw} 
+\end{subfigure}
+\\
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{b1-f}
+\captionsetup{justification=centering}
+\caption{Bases}
+\label{fig:b} 
+\end{subfigure}
+~
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{fftbw1-f}
+\captionsetup{justification=centering}
+\caption{FFT bases}
+\label{fig:bfft} 
+\end{subfigure}
+
+\captionsetup{justification=centering}
+\caption[Pretraining results]{Pretraining results}
+\label{fig:pretrainingadapt} 
+
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.7\textwidth]{sort2front_purple}
+\captionsetup{justification=centering}
+\caption{FFT sort}
+\label{fig:fftsort} 
+\end{figure}
+
+
+
+
 First, in Figure [CITE] we can see that the learnt windows is a bit noisy but follows the shape of the usually used windows that are the Hann and Hamming windows.
 Secondly, in Figure [CITE], we see that the bases / filters learnt by the Adaptive layer are extracting frequencies especially for the multi-speaker separation problem. As it could be expected, the filters are more focused on the low frequencies since the human voice is in the low frequency range [search freq !]
 In [CITE] we compare the Adapt layer latent representation with the STFT of the mixture of 2 speakers and their original signals. We can see that the adaptive layer produces a more compact repsentation than the STFT due to the $128$ maxpooling stride and hop. Furthermore, the sparsity of the STFT and Adaptive layer for the original signals appears to be quite the same but the biggest difference lie in the mixture representation where the Adaptive layer is significantly less noisy than the STFT representation.
