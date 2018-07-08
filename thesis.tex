@@ -1520,19 +1520,17 @@ SCE (ours) & 3.72 & 9.75 & 7.38 & 14.10 & 5.89 & 12.23 \\
 
 In a second phase, we reproduce the results of SCE \cite{SCE} using the same architecture consisting in 3 BLSTM layers of 600 units each. Before being fed into the network, the square root function is applied on the magnitude spectrograms and these latter are normalized between 0 and 1. We report our results in \ref{table:SCErepro}: as we can see we could not reach the results presented in \cite{SCE} but we will see that the addressed contributions are leading to better results for a mixture of 2 speakers.
 
-
 \section{Adaptive Layer pretraining}
 
-In this section we analyze the pretraining phase of the Adaptive layer presented in [CITE]. To do so, its examine the reconstruction performances for different hyperparameters defined previously.
+In this section we analyze the pretraining phase of the Adaptive layer presented in \autoref{adapt}. To do so, we examine the reconstruction performances for different values for the defined hyperparameters.
 
-Firstly, concerning the network architecture, the first one dimensional convolutional layer was set to have a stride of 1 and we evaluate the performance for different size of windows and number of filters. The max-pooling layer is set to have the same stride and hop not to have overlapped information and is evaluated with different sizes. 
-Secondly, the RMSProp optimizer was used with a learning rate of $0.001$ and was halved each 50 epochs. The overlapping rate $\lambda$ was set constant equal to $100$, the sparsity rate $\beta$ was set to $0.01$ with a sparsity constraint of $0.01$. 
-We trained the Adaptive layer during 120 epochs.
+Firstly, concerning the network architecture, the first one-dimensional convolutional layer was set to have a stride of 1 with zero padding and we evaluate the performance for different size of windows and number of filters. The max-pooling layer is set to have the same stride and hop not to have overlapped information and is evaluated with different sizes. 
+Secondly, the RMSProp optimizer was used with a learning rate of $0.001$ and was halved every 50 epochs. The overlapping rate $\lambda$ was set constant equals to $100$, the sparsity rate $\beta$ was set to $0.01$ with a sparsity constraint of $0.01$. 
+The Adaptive layer is trained during 150 epochs with chunks size of 20480 frames.
 Concerning the dataset, we used a mixture of 2 speakers with all possible genders combination (male/male, female/female and male/female) to cover as many frequency combinations as possible. Furthermore, the data given in input of the front-end were not normalized and given as raw. 
-The Table [CITE] represents the results obtained for different parameters.
 
 	
-As we can see in the Table [CITE], the best results obtained are for a window of size $1024$ and a maxpooling stride and hop of $128$. Concerning the number of filters, using $512$ filters led to better results but we did not use this pretrained model for our next experiments because having a large number of filters can lead to worse separation performance than using $256$ filters. We do not report the results here, but we compared the architectures with $512$ filters and the one with $256$ filters on the Deep Clustering method and obtained better separation using the latter.
+As we can see in the Table [CITE], where different hyperparameters for the Adaptive layer are tried, the best result obtained is for a window of size $1024$ and a maxpooling stride and hop of $128$. Concerning the number of filters, using $512$ filters led to better results but we did not use this pretrained model for our next experiments because having a large number of filters can lead to worse separation performance than using $256$ filters. We do not report the results here, but we compared the architectures with $512$ filters and the one with $256$ filters on the Deep Clustering method and obtained better separation using the latter.
 For the rest of this study we will use the pretrained model with $256$ filters and a window size of $1024$ as our Adapt layer for the Deep Clustering and Source 
 Contrastive Estimation methods. In the following paragraphes, we analyze this specific selected model.
 
@@ -1542,33 +1540,33 @@ Contrastive Estimation methods. In the following paragraphes, we analyze this sp
 \centering
 \begin{subfigure}[b]{0.45\textwidth}
 \includegraphics[width=\textwidth]{purple_front_window}
-\caption{Window}
+\caption{Front-end learnt window $|\omega|$}
 \label{fig:win} 
 \end{subfigure}
 ~
 \begin{subfigure}[b]{0.45\textwidth}
 \includegraphics[width=\textwidth]{bw1-f}
 \captionsetup{justification=centering}
-\caption{Conv filters}
+\caption{Front-end learnt convolution filters $|\omega| B_i$}
 \label{fig:bw} 
 \end{subfigure}
 \\
 \begin{subfigure}[b]{0.45\textwidth}
 \includegraphics[width=\textwidth]{b1-f}
 \captionsetup{justification=centering}
-\caption{Bases}
+\caption{Front-end learnt convolution bases $B_i$}
 \label{fig:b} 
 \end{subfigure}
 ~
 \begin{subfigure}[b]{0.45\textwidth}
 \includegraphics[width=\textwidth]{fftbw1-f}
 \captionsetup{justification=centering}
-\caption{FFT bases}
+\caption{Fast Fourier Transform of $B_i$ in \autoref{fig:b}}
 \label{fig:bfft} 
 \end{subfigure}
 
 \captionsetup{justification=centering}
-\caption[Pretraining results]{Pretraining results}
+\caption[Adaptive layer pretraining results]{Pretraining results}
 \label{fig:pretrainingadapt} 
 
 \end{figure}
@@ -1583,14 +1581,22 @@ Contrastive Estimation methods. In the following paragraphes, we analyze this sp
 
 
 
+First, in \autoref{fig:win} we can see that the learnt windows is a bit noisy but follows the shape of the usually used windows that are the Hann and Hamming windows.
+Secondly, in Figures \ref{fig:bw}, \ref{fig:b} and \ref{fig:bfft}, we observe that the bases/filters learnt by the Adaptive layer are extracting frequencies especially for the multi-speaker separation problem. As it could be expected, the filters are more focused on the low frequencies ( \autoref{fig:fftsort})/
 
-First, in Figure [CITE] we can see that the learnt windows is a bit noisy but follows the shape of the usually used windows that are the Hann and Hamming windows.
-Secondly, in Figure [CITE], we see that the bases / filters learnt by the Adaptive layer are extracting frequencies especially for the multi-speaker separation problem. As it could be expected, the filters are more focused on the low frequencies since the human voice is in the low frequency range [search freq !]
-In [CITE] we compare the Adapt layer latent representation with the STFT of the mixture of 2 speakers and their original signals. We can see that the adaptive layer produces a more compact repsentation than the STFT due to the $128$ maxpooling stride and hop. Furthermore, the sparsity of the STFT and Adaptive layer for the original signals appears to be quite the same but the biggest difference lie in the mixture representation where the Adaptive layer is significantly less noisy than the STFT representation.
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{comparison_log}
+\captionsetup{justification=centering}
+\caption{Compare}
+\label{fig:comparison} 
+\end{figure}
+
+In \autoref{fig:comparison}, we compare the Adaptive layer latent representation with the STFT of the mixture of 2 speakers and their original signals. We can observe that the adaptive layer produces a more compact repsentation than the STFT due to the $128$ maxpooling stride and hop. Furthermore, the sparsity of the STFT and Adaptive layer for the original signals appears to be quite the same but the biggest difference lies in the mixture representation where the Adaptive layer is significantly less noisy and way sparser than the STFT representation.
 
 Since the maxpooling layer is leading to reconstruction problems, we as well tried to delete this layer and the unpooling one, and instead of using a stride of 1 from the one dimensional convolutional layer we used larger size of hop (like it is actually done in the Short Time Fourier Transform). We used the same parameters for the overlapping and the sparsity constraint, plus we added a non negativity constraint in the objective function.
 
-As this table [CITE] shows, using the overlapping loss combined with the non-negativity one could lead to better reconstruction. But, we tried to apply these pretrainied autoencoders to SCE and Deep Clustering, and we couldn't reach good results. This was mainly due to the bas sparsity of this representation, indeed, as we can in the Figure [CITE], the bases learned by the autoencoder are very noisy and therefore do not extract a specific information. Furthermore, not using the non negativity constraint was leading to very contrasts of sign in the latent representation, and even with it the negativity was l. The problem of having highly negative and positive representation is when, for instance, two spectrograms are added some bins will see their bins changing sign and applying masks will not work on such cases.
+As Table [CITE] shows, using the overlapping loss combined with the non-negativity one could lead to better reconstruction. But, we tried to apply these pretrainied autoencoders to SCE and Deep Clustering, and we couldn't reach good results. This was mainly due to the bas sparsity of this representation, indeed, as we can in the Figure [CITE], the bases learned by the autoencoder are very noisy and therefore do not extract a specific information. Furthermore, not using the non negativity constraint was leading to very contrasts of sign in the latent representation, and even with it the negativity was l. The problem of having highly negative and positive representation is when, for instance, two spectrograms are added some bins will see their bins changing sign and applying masks will not work on such cases.
 
 The biggest problem for now with the Adaptive Layer is its incapacity to correctly reconstruct signal of more than 2 speakers mixture. As mentioned, this layer is not fully linear, indeed for a mixture of 2 speakers the max-pooling layer does not have a huge effect on the sparse representation computed but for more speakers it is more likely that the maximum value of the added mixtures has a different position
 
