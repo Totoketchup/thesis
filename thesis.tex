@@ -24,6 +24,7 @@
 \usepackage{multirow}
 \usepackage{tikz}
 \usetikzlibrary{matrix,chains,intersections,positioning,decorations.pathreplacing,arrows,shapes, arrows, calc}
+\usepackage{needspace}
 
 %\usepackage[T1]{fontenc}
 
@@ -51,15 +52,15 @@ With the arrival of Deep Learning in audio signal processing, improvements have 
 
 But these methods still struggle to separate mixed voices of the same gender and thus struggle to separate more than three voices from a single input channel. We presume that this problem might be mainly due to the overlapping frequencies in the mixed spectrograms when the same genders are speaking. To overcome this issue, we replace the use of spectrograms and propose a new approach consisting in using a sparse linear autoencoder, named 'adaptive layer', added to the current state of the art methods, namely the Deep Clustering (DPCL) and Source Contrastive Estimation (SCE) approaches. This autoencoder is composed of two main parts, a front-end layer and a back-end layer, and is able to take in input raw mixed audio signals and output separated audio signals. 
 
-In this study, we compare the SDR improvements with and without the adaptive layer for a mixture of different speakers. We show promising results with this new layer that can enhance Deep Clustering results.
-Furthermore, we improve the SCE approach using methods introduced by Deep Clustering and other new regularization methods. For a mixture of 2 random speakers we improved the state of the art of the multi-speaker separation problem by 1.58 dB, for only males mixtures by 1.35 dB and for male and female mixtures our implementation of Deep Clustering reaches 13.35 dB and 20.59 dB in terms of SDR and Signal to Interference Ratio (SIR) improvements.
+In this study, we compare the SDR improvements with and without the adaptive layer for a mixture of different speakers. We show promising results with this new layer that can enhance Deep Clustering results by 0.25 dB for 2 speakers mixtures.
+Furthermore, we improve the SCE approach using methods introduced by Deep Clustering and other new regularization methods. For a mixture of 2 random speakers, we improved the state of the art of the multi-speaker separation problem by 1.58 dB, for only males mixtures by 1.35 dB and for male and female mixtures our implementation of Deep Clustering reaches 13.35 dB and 20.59 dB in terms of SDR and Signal to Interference Ratio (SIR) improvements.
 \end{eabstract}
 
 \maketitle
 
 \begin{acknowledge}
 
-Firstly, I would like to express my gratitude to my supervisor Hiroshi Imai for his support and wise advice all along this thesis, in addition, I would like to deeply thank Hidefumi Hiraishi and Naoto Ohsaka who helped me a lot over these years. I would also like to thank Doctor Kazuki Yoshizoe of RIKEN AIP for all his feedback and support, and for accepting me in his research unit as a trainee and allowing me to use RAIDEN computer without which I would not have been able to realize all this work.
+Firstly, I would like to express my gratitude to my supervisor Hiroshi Imai for his support and wise advice all along this thesis, in addition, I would like to deeply thank Hidefumi Hiraishi and Naoto Ohsaka who helped me a lot over these years. I would also like to thank Doctor Kazuki Yoshizoe of RIKEN AIP for all his feedback and support, and for accepting me in his research unit as a trainee and allowing me to use RAIDEN computer without which I would not have been able to realize all this work. Moreover, I would like to thank Doctor Kazuyoshi Yoshii from the University of Kyoto for his useful feedback and remarks on this study.
 
 Secondly, I would like to especially thank Natalia Jarzebska and Dea Luma for all their support throughout these 2 years and a half in Japan, having them by my side was a huge source of motivation and inspiration. Thank you for all your advice, for having listened to me, and for all the amazing moments we spent together, I will never forget everything you did for me.
 
@@ -67,9 +68,8 @@ Finally, I would like to express my profound gratitude to all my familly for all
 
 \end{acknowledge}
 
-\pagenumbering{arabic}
+\pagenumbering{roman}
 
-\newpage
 
 \tableofcontents
 
@@ -77,25 +77,30 @@ Finally, I would like to express my profound gratitude to all my familly for all
 
 \listoffigures % Prints the list of figures
 
+\newpage
+
 \listoftables % Prints the list of tables
 
+\newpage
+
+
+\pagenumbering{arabic}
 
 \chapter{Introduction}
 
-%\nocite{*}
 
 \section{Multi-Speaker Separation Problem}
-In 1953, Colin Cheery called the capacity of human beings to separate many voices in a conversation the \textit{cocktail party problem}. We know that humans are very good at separating voices or other sounds from a noisy environment by focusing their attention to a particular chosen target. In this study, we focus our attention on the multi speaker separation problem consisting in separating from a \textbf{single channel} a mixture of speakers with different genders. 
+In 1953, Colin Cheery \cite{Colin} called the capacity of human beings to separate many voices in a conversation the '\textit{cocktail party problem}'. We know that humans are very good at separating voices or other sounds from a noisy environment by focusing their attention to a particular chosen target. In this study, we focus our attention on the multi-speaker separation problem consisting in separating voices from a \textbf{single channel} mixture of speakers with different genders. 
 
 More generally, the source separation problem can be very useful in domains like automatic speech recognition, speech enhancement for hearing aids or in music tracks separation.
 
-One challenge in the source separation problem is called the '\textit{permutation problem',} that is happening when segmentation is used to separate the sources without having knowledge of the separated sources, therefore we do not know which partition belong to which source. This is a problem when chunking the input in order to process it in a separating model, the first chunk will output a certain order for the separation but it is not assured that next chunks will be outputted in the same order. We will discuss later in this study about how new deep learning architectures are solving this problem.
+One challenge in the source separation problem is called the '\textit{permutation problem'}, that is happening when segmentation is used to separate the sources without having knowledge of the separated sources, therefore we do not know which partition belong to which source. This is a problem when chunking the input in order to process it in a separating model, the first chunk will output a certain order for the separation but it is not assured that next chunks will be outputted in the same order. We will discuss later in this study about how new deep learning architectures are solving this problem.
 
 In this study, we only focus on the \textbf{single channel separation problem} but multi-channel audio separation is as well a very active area that has shown to produce even better results than using a unique channel. Today's deep learning methods, such as Deep Clustering \cite{DPCLV1, DPCLV2} can achieve quite good results in the multi speaker separation problem for 2 different genders speakers mixtures in terms of SDR improvements but are still not obtaining as successful results for \textbf{speakers of the same gender} or for a mixture of more than 2 speakers. 
 
 The main advantage brought by Deep Clustering \cite{DPCLV1} method is that it is a partition-based segmentation where the labels of the partitions are learnt in opposition of a class-based segmentation where the labels of the segmented sources are learnt. This approach allows to generalize very well to unknown speakers because it does not learn '\textit{who}' is speaking but how to differentiate each speaker without the '\textit{who}' information. Deep Clustering method produces discriminative embeddings from spectrogram magnitudes to apply clustering algorithm on them and then assign labels to each partitions. These learnt partitions are used to create masks for the input spectrograms and separate each voice.
 
-In this study we intend to improve the performances of current state of the art methods regarding same gender mixtures.
+In this study we intend to improve the performances of current state of the art methods regarding overall genders mixtures with 2 speakers.
 
 Firstly, this study is in part based on \cite{Adaptive} which shows that using an end-to-end autoencoder architecture on raw audio mixture for the source separation problem instead of Discrete Cosine Transform spectrograms can lead to better SDR improvement but this study is limited in terms of number of separated speakers, deep neural network complexity and generalization error. We suppose that a similar architecture, compatible with current state of the art deep learning methods and replacing the use of spectrograms, can lead to better results. In addition, we suppose that one problem with the use of spectrograms is that for a mixture of speakers with the same gender it is more likely that frequencies overlapping occurs, and thus separating information becomes more challenging. The architecture we propose to replace the use of spectrogramw tries to decrease this overlapping problem and thus intends to increase performances with mixtures of the same gender. 
 
@@ -105,11 +110,11 @@ Secondly, we consider another approach named Source Contrastive Estimation (SCE)
 \section{Contributions}
 \label{contrib}
 
-In our work we are adressing the improvement of the multi speaker separation problem with two main approaches:
+In our work we are adressing the improvement of the multi-speaker separation problem with two main approaches:
 
-Firstly, we propose a sparse autoencoder architecture to replace the use of spectrogram and lower the overlapping in the usual representation. We show that this neural network can improve the performances for 2 speakers mixtures but creating such an architecture for a mixture of 3 speakers is more challenging.
+Firstly, we propose a sparse autoencoder architecture to replace the use of spectrogram and lower the overlapping in the usual representation. We show that this neural network can improve the performances for 2 speakers mixtures but creating such an architecture for a mixture of 3 speakers is more challenging. We observe that this additional autoencoder can improve Deep Clustering performances by 0.52 dB for males mixtures and by 0.25 dB for random genders mixtures.
 
-Secondly and in parallel, we improve the Source Contrastive Estimation method using different techniques brought by the second version of Deep Clustering \cite{DPCLV2}. In addition, we try new regularization techniques for SCE such as Negative Sampling or combining it with the DANet \cite{DANet} method. We show that all these combinations can lead to significant improvements of the SCE method.
+Secondly and in parallel, we improve the Source Contrastive Estimation method using different techniques brought by the second version of Deep Clustering \cite{DPCLV2}. In addition, we try new regularization techniques for SCE such as Negative Sampling, silent loss function or combining it with the DANet \cite{DANet} method. We show that using negative sampling with the SCE method can improve the state of the art of 2 speakers mixtures separation by 1.58 dB.
 
 \chapter{Background}
 \section{The Short Time Fourier Transform (STFT)}
@@ -126,14 +131,14 @@ Short-Time Fourier Transform (STFT) has played a significant role in signal proc
 This transformation on a signal is obtained by applying the Fourier Transform along it on a fixed-sized window and moving it along with some overlapping. This operation converts this signal that has frequency changes over time into a time-frequency domain that can be more understable for analysis than its original 1-dimensional representation.
 The STFT of a signal $x$ at the frame $t$ and frequency $f$, named the \textit{TF-bin}, is defined as follow:
 \[
-	STFT\{x\}(t,f) = X(t,f) = \sum_{n=-\infty}^{n=+\infty}x[n]w[t-mh]e^{-jf\frac{2\pi}{N}t } \in \mathbb{C}^{T\times F}
+	STFT\{x\}(t,f) = X(t,f) = \sum_{n=-\infty}^{n=+\infty}x[n]w[t-mh]e^{-if\frac{2\pi}{N}t } \in \mathbb{C}^{T\times F}
 \]
 
 Here, $f$ designates the frequency index, $t$ is the frame center and $h$ the hop size. The \textit{analysis window} used for the tranformation is $w$ and is of size $N$. The most commonly used analysis windows are the Hann and Hamming windows.
 The STFT of a signal $x$ can be seen as a complex matrix $X \in \mathbb{C}^{T\times F}$ ($T$ representing the time axis and and $F$ the frequency axis) that can be decomposed as follow:
 
 \[
-	STFT\{x\} = X = |X|\exp^{j\phi}
+	STFT\{x\} = X = |X|\exp^{i\phi}
 \]
 
 In this decomposition, $|X|$ represents the STFT magnitude and $\phi$ its phase. In audio analysis, what is called the \textit{\textbf{spectrogram}} (\autoref{fig:spectrogram}) of an audio signal is the squared magnitude of the computed Short-Time Fourier Transform and is defined as follow:
@@ -142,19 +147,19 @@ In this decomposition, $|X|$ represents the STFT magnitude and $\phi$ its phase.
 	spectrogram\{x\}(t,f) =  |X(t,f)|^2
 \]
 
-In this study, we consider a mixture of $M$ speakers ,with the same or of a different gender, $x$ defined as:
+In this study, we consider a mixture of $M$ speakers, with the same or of a different gender, $x$ defined as:
 
 \[
 x = \sum_{i=0}^{M} x_i
 \]
 
-Here, $x$ is named the \textit{\textbf{mixture}} and each $x_i$ are the \textit{\textbf{original sources}}. Since the STFT is a linear operation, applying it on the mixture leads to:
+Here, $x$ is named the audio \textit{\textbf{mixture}} and each $x_i$ are the \textit{\textbf{original sources}}. Since the STFT is a linear operation, applying it on the mixture leads to:
 
 \[
 	STFT\{x\} = X = \sum_{i=0}^{M} X_i =\sum_{i=0}^{M} STFT\{x_i\}
 \]
 
-Since complex numbers are difficult to handle in audio processing, the phase is most of the time discarded and only the magnitude is used. Even if some information might be lost by discarding the phase, studies \cite{stft} have shown that for small window size (20 - 40ms) most of the information is contained in the STFT magnitude. It has been as well shown that, even if the absolute value is taken into account, the additivity approximately holds regarding and thus that: $|X| \simeq \sum_{i=0}^{M} |X_i|$. This property and the non-negativity of spectrograms lead to the use of masks in order to perform source separation.
+Since complex numbers are difficult to handle in audio processing, the phase is most of the time discarded and only the magnitude is used. Even if some information might be lost by discarding the phase, studies \cite{stft} have shown that for small window size (20 - 40ms) most of the information is contained in the STFT magnitude. It has been as well shown that, even if the absolute value is taken into account, the additivity approximately holds and thus: $|X| \simeq \sum_{i=0}^{M} |X_i|$. This property and the non-negativity of spectrograms lead to the use of masks in order to perform source separation.
 
 
 \section{Spectrogram Masking}
@@ -165,21 +170,21 @@ The \textit{\textbf{ideal binary mask}} $IBM(t,f)_i$ applied at a $(t,f)$ bin fo
 \[
 m^{ibm}_i(t,f) = IBM(t,f)_i = \left\{
     \begin{array}{ll}
-        1 & \mbox{if } |X(t,f)_i| > max_{j \neq i} |X(t,f)_j \\
+        1 & \mbox{if } |X(t,f)_i| > max_{j \neq i} |X(t,f)_j| \\
         0 & \mbox{else}
     \end{array}
 \right.
 \]
 
-The ideal binary mask can be seen as a matrix $m^{ibm} \in R^{T\times F \times M}$ where an element at $(t,f,i)$ is set to $1$ for the $i^{th}$ speaker if this latter is dominant compared to the others and $0$ otherwise. In \cite{IBM}, it is shown that IBM can be very efficient for separating sources but highly depends on the STFT window size, and this optimal can vary according to the source type and task.
+The ideal binary mask can be seen as a matrix $m^{ibm} \in R^{T\times F \times M}$ where an element at $(t,f,i)$ is set to $1$ for the $i^{th}$ speaker if this latter is dominant compared to the others and $0$ otherwise. In \cite{IBM}, it is shown that IBM can be very efficient for separating sources but highly depends on the STFT window size, and its performance can vary according to the source type and task.
 
-Another popular mask is the \textit{\textbf{Wiener-like filter}}, which generally leads to better Signal to Distortion Ratio (SDR) since it is a softer masks of which values lands in [0,1]. The Wiener-like filter is defined as:
+Another popular mask is the \textit{\textbf{Wiener-like filter}}, which generally leads to better Signal to Distortion Ratio (SDR) since it is a softer masks of which values are included in [0,1]. The Wiener-like filter is defined as:
 \[
 m^{wf}_i = \frac{|X_i|^2}{\sum_j{|X_j|^2}} 
 \]
 
 We show the difference between binary and Wiener-like masks in \autoref{fig:masking}.
-In the result section \ref{res} we compare our results with the Wiener-like filters.
+In the result section \ref{res:glo} we compare our results with the IBM filters.
 
 
 \begin{figure}[h]
@@ -192,7 +197,6 @@ In the result section \ref{res} we compare our results with the Wiener-like filt
 \\
 \begin{subfigure}[b]{0.45\textwidth}
 \includegraphics[width=\textwidth]{ibm1}
-\captionsetup{justification=centering}
 \caption{Binary mask extracting the  $1^{st}$ speaker}
 \label{fig:ibm1} 
 \end{subfigure}
@@ -218,7 +222,7 @@ In the result section \ref{res} we compare our results with the Wiener-like filt
 \label{fig:ibmsep1} 
 \end{subfigure}
 \captionsetup{justification=centering}
-\caption[IBM and Wiener-like masks comparison]{Comparison between binary masks and Wiener-like masks. As mentioned, we can see that using Wiener-like (\autoref{fig:wf1}) that are softer than binary masks (\autoref{fig:ibm1}) is leading to a better reconstruction}
+\caption[IBM and Wiener-like masks comparison]{Comparison between binary masks and Wiener-like masks. As mentioned, we can see that using Wiener-like (\autoref{fig:wf1}) that are softer than binary masks (\autoref{fig:ibm1}) is leading to a better reconstruction.}
 \label{fig:masking} 
 
 \end{figure}
@@ -302,7 +306,8 @@ Deep Learning \cite{DL, DLBOOK} has seen an explosion of interest these last yea
 \label{fig:ann}
 \end{figure}
 
-Artificial Neural Networks (ANN) are based on the biological observation of human brain and how actual neurons networks are working. A human brain contains approximately 100 billions neurons that are connected to each other, studies say that an neuron has in average around 50000 connections with other neurons. They are connected to each other by what is called the \textit{synapses}.
+Artificial Neural Networks (ANN) are based on the biological observation of human brain and how actual neurons networks are working. A human brain contains approximately 100 billions neurons that are connected to each other, studies say that an neuron has in average around 50000 connections with other neurons.
+
 Articial neurons are mimicking the process of biological neurons in two main steps: firstly, they take in input many other artificial neurons outputs and magnify it with a certain \textit{weight}, secondly, depending on the outcome of this operation an activation function will determine how much of this output must be outputted to other neurons it is connected to. This process is explained in \autoref{fig:ann} and can be formulated as:
 
 
@@ -339,20 +344,20 @@ The new commonly used activation functions are the Rectified Linear Unit (ReLU),
 
 \includegraphics[width=\textwidth]{lenet}
 
-	\caption[Architecture of a traditional convolutional neural network.]{LeNet-5 convolutional network architecture introduced by Y. LeCun . In this figure, we see that CNN are made of an alternation between convolutional operations (with a non linear activation function applied) and subsampling operations. This architecture was used on digits recognition}
+	\caption[Architecture of a traditional convolutional neural network.]{LeNet-5 convolutional network architecture introduced by Y. LeCun in \cite{Lecun} . In this figure, we see that CNN are made of an alternation between convolutional operations (with a non linear activation function applied) and subsampling operations. This architecture was used on digits recognition. Figure from \cite{figlecun}.}
 	\label{fig:cnn}
 \end{figure}
 
 
 Convolutional Neural Networks (CNN or ConvNet) \cite{unpool,CNNrecent} (\autoref{fig:cnn}) are networks made from the same artificial neurons presented previously, but do not apply the same operations as fully connected networks.
-The interest for CNNs increased a lot after AlexNet deep learning architecture won the ILSVRC competition in 2012 using this convolutional networks and improved previous state of the art method by almost 11\%. From then, deeper and more complex CNN networks have been built and constantly improving their accuracy.
+The interest for CNNs increased a lot after AlexNet deep learning architecture won the ILSVRC competition in 2012 using this convolutional networks and improved previous state of the art method by almost 11\%. From then, deeper and more complex CNN networks have been built and constantly are improving their accuracy.
 The main difference with fully connected networks is that, as its name suggests, CNN are using convolutional operations with \textbf{\textit{filters/kernels}} along their inputs in order to create a \textbf{\textit{feature map/receptive field}}.
 
-Image analysis began to be very difficult to use with fully connected networks because, for $256\times 256$ images for instance, the input has to be flatten and as a result the number of weights in the networks becomes very large. In CNN this problem is solved using filters that are shared across the receptive field, and thus considerably decreasing the number of weights used in the architecture.
+Image analysis began to be very difficult to use with fully connected networks because, for $256\times 256$ images for instance, the input has to be flatten and as a result the number of weights in the networks becomes very large. In the CNN, this problem is solved using filters that are shared across the receptive field, and thus considerably decreasing the number of weights used in the architecture.
 
 Today's common CNN architectures, used for image analysis for instance, are made of blocks computing the following operations: first, a \textbf{convolution} operation is applied on the input with several filters on each channel of the input (for instance images can be made of red, green and blue channels), then a non-linear activation function is applied and finally a subsampling operation such as maxpooling or average pooling is applied, like it is shown in \autoref{fig:cnn}.
 
-In our study, with the Adaptive layer (\autoref{adapt}) we use one-dimensional convolution layers along audio signal in order to learn useful filter-banks for the multi speaker separation problem.
+In our study, with the Adaptive layer (\autoref{adapt}) we use one-dimensional convolution layers along audio signal in order to learn useful bases for the multi-speaker separation problem.
 
 \subsection{Recurrent Neural Networks}
 
@@ -411,11 +416,11 @@ y^t = g(W_{hy} \cdot h^t + b_{hy} )
 \label{fig:rnn}
 \end{figure}
 
-But one of drawback of Recurrent Neural Networks is that they have problem memorizing information or context for long sequences and this is mainly due to the vanishing gradient problem \cite{RNNexploding}.
+But one of drawback of recurrent neural networks is that they have problem memorizing information or context for long sequences and this is mainly due to the vanishing gradient problem \cite{RNNexploding}.
 
 
-Long Short Term Memory architectures \cite{LSTM} (\autoref{fig:lstm}) are solving this problem by using a ''memory cell'' that is transiting the main information using linear operations. As its name suggests, this architecture can learn long-term dependencies.
-The chained structure is kept but cells do not interact with the input the same way classical RNNs do. 
+Long Short Term Memory (LSTM) architectures \cite{LSTM} (\autoref{fig:lstm}) are solving this problem by using a ''memory cell'' that is conveying the main information along each step using linear operations. As its name suggests, this architecture is very efficient to learn long-term dependencies compared to regular RNN cells.
+The chained structure is kept but cells do not interact with the input the same way classical RNN do. 
 
 \begin{figure}[h]
 \centering
@@ -487,14 +492,14 @@ The chained structure is kept but cells do not interact with the input the same 
 
 
 \end{tikzpicture}
-\caption[Architecture of a Long Short Term Memory Cell]{Architecture of a Long Short Term Memory cell (LSTM) - in red is the \textbf{forget gate}, in green the \textbf{input gate} and in blue the \textbf{output gate} - matrices on the left of lines are applied to $y_{t-1}$ and the one on the right to $x_t$}
+\caption[Architecture of a Long Short Term Memory Cell]{Architecture of a Long Short Term Memory cell (LSTM) - in red is the \textbf{forget gate}, in green the \textbf{input gate} and in blue the \textbf{output gate} - matrices on the left of lines are applied to $y_{t-1}$ and the one on the right to $x_t$.}
 \label{fig:lstm}
 \end{figure}
 
 
 LSTMs block consists in a \textbf{memory cell}, an \textbf{input gate}, a \textbf{forget gate} and an \textbf{output gate}.
 The \textbf{memory state} is a high dimensional state holding the information about past inputs and is updated according to its previous state and new inputs.
-The \textbf{forget gate} will decide what information in the current memory state the block should keep or delete. This forgetting operating is done as follow:
+The \textbf{forget gate} will decide what information in the current memory state the block should keep or delete. This forgetting operating is computed as follow:
 
 \[f_t = \sigma(W_{f} x_t + U_{f} h_{t-1} + b_f)\]
 
@@ -670,7 +675,7 @@ But shrinking or increasing the code layer size does not always suffice and othe
 
 With \textbf{denoising autoencoders}, inputs are corrupted with some random noise and the architecture is trained to learn their denoised version. The autoencoder is therefore forced to learn good features of the input but, as well to delete the noise added to this latter.
 
-\textbf{Sparse autoencoders} are architectures where a \textbf{sparsity constraint} has been applied on the latent representation. \textbf{Sparsity} in the code layer implies that many units will be very close to the zero value and therefore units will be activated just to extract a very useful information for the reconstruction. For instance, an overcomplete autoencoder ($dim(c) > dim(x)$) without any sparsity constraint will be likely to learn similar features over the code layer or to converge to the identity function.
+\textbf{Sparse autoencoders} are architectures where a \textbf{sparsity constraint} is applied on the latent representation during the training phase. \textbf{Sparsity} in the code layer implies that many units will be very close to the zero value and therefore units will be activated just to extract a very useful information for the reconstruction. For instance, an overcomplete autoencoder ($dim(c) > dim(x)$) without any sparsity constraint will be likely to learn similar features over the code layer or to converge to the identity function.
 
 This constraint is added by forcing the latent units to have a small value $\rho$ in average. The activation value average of a code layer neuron over $n$ samples $(x^{(1)}, \dots, x^{(n)})$ can be computed by:
 
@@ -697,7 +702,8 @@ In our study, the Adaptive layer presented in \autoref{adapt} is based on a spar
 
 \subsection{Loss function and Backpropagation}
 \label{loss}
-In order to train a neural network to learn a specific function in order to realize a specific task, it is needed to tell to the network '\textit{how much it is wrong}' in order to correct its next prediction. This is realized using an \textbf{objective function}/\textbf{loss function}/\textbf{cost function} which is telling the goal of our problem. This task can be seen as an optimization problem where the goal is to minimize or maximize the objective function in order to reach its global minimum or maximum point (depending on its definition) and thus reach the optimal solution. In order to reach this optimal goal associated with a particular objective with a deep neural networks the backpropagation algorithm coupled with the stochastic gradient descent algorithm.
+
+In order to train a neural network to learn a specific function in order to realize a specific task, it is needed to tell to the network '\textit{how much it is wrong}' in order to correct its next prediction. This is realized using an \textbf{objective function}/\textbf{loss function}/\textbf{cost function} which is telling the goal of our problem. This task can be seen as an optimization problem where the goal is to minimize or maximize the objective function in order to reach its global minimum or maximum point (depending on its definition) and thus reach the optimal solution. In order to reach this optimal goal associated with a particular objective with a deep neural networks the backpropagation algorithm is coupled with the stochastic gradient descent algorithm.
 
 
 The \textbf{backpropagation algorithm} \cite{BACKPROP} is the method used to compute the partial derivatives needed for the stochastic gradient descent algorithm. It is commonly said that the backpropagation step encompasses the gradient computation and the weights update of the neural network,but actually there are three distinct steps, (1) the forward step consisting in inputting the training samples and computing the neural network outputs, (2) the backpropagation computing the partial derivatives of the objective function and finally (3) the stochastic gradient descent algorithm is applied and all the weights are updated.
@@ -714,7 +720,7 @@ If the whole network is made of differentiable operations then it is possible to
  \]
 
 The vanishing gradient problem by the sigmoid function mentioned in \autoref{ffn} is explained by the fact that during the training phase, bacpropagation algorithm is used and the minimum (which can be local) is searched iteratively in the opposite direction of the error derivative. During the backpropagation process, the sigmoid derivative function is used and multipled between each layers. The problem is that this function lies in $(0, 1/4]$ and these multiplications make the gradient vanish the more it backpropagates it.
-Furthermore, because of this problem, the first layers of our Neural Network are slower to train than the last one and this might results in a huge inaccuracy at the end. For example in CNNs, as mentioned, first layers learn large features so that the next layers refined these features as much as it goes deeper. The vanishing gradient problem implies that the refined features will have in input corrupted information from the previous layers and therefore will not be able to learn useful patterns.
+Furthermore, because of this problem, the first layers of our Neural Network are slower to train than the last one and this might results in a huge inaccuracy at the end. For example in CNNs, as mentioned, first layers learn large features so that the next layers refined these features as much as it goes deeper. The vanishing gradient problem implies that the refined features will have in input corrupted information from the previous layers and therefore will not be able to efficiently learn useful patterns.
 
 \subsection{Regularization}
 
@@ -723,7 +729,7 @@ One of the biggest problem that neural networks can encounter during its trainin
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{gen}
-\caption[Generalization problem explanation]{We say there the network is \textbf{overfitting} the training set when the training error continues to decrease while the test error is increasing - Here the figure explains the concept of \textbf{early stopping} to counter the overfitting problem}
+\caption[Generalization problem explanation]{We say that the network is \textbf{overfitting} the training set when the training error continues to decrease while the test error is increasing - Here the figure explains the concept of \textbf{early stopping} to counter the overfitting problem.}
 \label{fig:gen} 
 \end{figure}
 
@@ -757,7 +763,7 @@ In this study, early stopping is used to avoid overfitting, we set it so that th
 
 \subsection{Optimization}
 
-During the optimization phase, three types of gradient descent exists. Firstly, the \textbf{batch gradient descent} is taking in input the whole dataset and then updating the weights accordindly. Using this method guarantees to converge to the global minimum for convex objective function and local minimum for non-convex one but this method is intractable for huge dataset which can not fit entirely in memory and is not able to handle online learning. The second method, named the \textbf{stochastic gradient descent} (SGD), consists in updating the weights after each sample has been fed to the network and is therefore way faster than the first one and can use online learning training. But there can be a huge variance between each update and thus the training phase becomes very noisy in terms of convergence. The third and today commonly used method is the \textbf{mini-batch gradient descent} which considers $n$ samples for updating the weights. Thus, the variance between each update is decreasing as much as the minibatch size increasesn but this size becomes a new hyperparameter to tune for training a neural network. This latter method is often called directly the SGD by misuse of language because minibatches are now universally used during the training phase.
+During the optimization phase, three types of gradient descent exists. Firstly, the \textbf{batch gradient descent} is taking in input the whole dataset and then updating the weights accordindly. Using this method guarantees to converge to the global minimum for convex objective function and local minimum for non-convex one but this method is intractable for huge dataset which can not fit entirely in memory and is not able to handle online learning. The second method, named the \textbf{stochastic gradient descent} (SGD), consists in updating the weights after each sample has been fed to the network and is therefore way faster than the first one and can use online learning training. But there can be a huge variance between each update and thus the training phase becomes very noisy in terms of convergence. The third and today commonly used method is the \textbf{mini-batch gradient descent} which considers $n$ samples for updating the weights. Thus, the variance between each update is decreasing as much as the minibatch size increases but this size becomes a new hyperparameter to tune for training a neural network. This latter method is often called directly the SGD by misuse of language because minibatches are now universally used during the training phase.
 
 In this section we present three main extensions for the Stochastic Gradient Descent: the momentum, RMSProp optimizer and Adam optimizer.
 \subsubsection{Momentum}
@@ -765,8 +771,9 @@ In this section we present three main extensions for the Stochastic Gradient Des
 One problem with the SGD method are ravines, surfaces where the curve is steeper in a direction than the other. Since SGD is pointing to the steepest direction rather than in the direction of the optimum, it will oscillate before reaching the surface minimum. Adding momentum helps the SGD to accelerate in ravine surfaces and is defined as follow:
 \[v_t = \gamma v_{t-1} + \eta \nabla_\theta J(\theta)\]
 \[\theta_t+1 = \theta_t - v_t\]
-The momentum term $\gamma$ is commonly set to the value $0.9$. One extension to the Momentum method is the Nestorov Accelerated Gradient (NAG) [cite].
+The momentum term $\gamma$ is commonly set to the value $0.9$.
 \subsubsection{RMSProp optimizer}
+\label{RMS}
 Root Mean Square Propagation (RMSProp) optimizer \cite{hinton2012neural} consists in exponentially decaying the learning rate using the average of squared gradients.
 Defining $g_t = \nabla_{\theta_t}J(\theta_t)$ gradient of the loss function to the parameter $\theta_t$t, $\eta$ the initial learning rate, RMSProp method is defined as follow:
 
@@ -795,7 +802,7 @@ It has been shown (\autoref{fig:adam}) that Adam can lead to better results in t
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{adam}
-\caption[Comparison of SGD, Adam and RMSProp performances]{ Adam Optimizer has better convergence than other optimizers such as RMSProp on the MNIST dataset with a multilayer neural network with dropout - Figure from Adam's paper \cite{ADAM}}
+\caption[Comparison of SGD, Adam and RMSProp performances]{ Adam Optimizer has better convergence than other optimizers such as RMSProp on the MNIST dataset with a multilayer neural network with dropout - Figure from Adam's paper \cite{ADAM}.}
 \label{fig:adam} 
 \end{figure}
 
@@ -803,25 +810,25 @@ In our study, we use both RMSProp and Adam optimizers and select the one leading
 
 \chapter{Related work}
 
-In this chapter, we firstly discuss about the previous methods used to perform the multi speaker separation problem and secondly, since our study is mainly based on these works, we explain in more details both versions of Deep Clustering, the Source Contrastive Estimation and the Deep Attractor Network methods.
+In this chapter, we firstly discuss about the previous methods used to perform the multi-speaker separation problem and secondly, since our study is mainly based on these works, we explain in more details both versions of Deep Clustering, the Source Contrastive Estimation and the Deep Attractor Network methods.
 
 Firstly, \cite{Weintraub:1985:TCM:912498} and \cite{GRASP} are one of the very first works from M. Weintraub trying to separate two different speakers using Markov Models to infer binary masks. He introduced the GRASP (Grouping Research on Auditory Sound Processing) method which uses onset and pitch features of speeches in order to extract useful information about the speakers and being able to separate them.
 Following this work, Computational Auditory Scene Analysis systems (CASA) \cite{CASA1, CASA2} were introduced. They are systems extracting sounds components and are based on the biological inspiration from the Auditory Scene Analysis (ASA) \cite{ASA}. They try to reproduce source organization achieved by human beings using two main steps: the segmentation phase and grouping phase. Firstly, the segmentation phase extracts information such as harmonicity, pitch, coherent amplitude, or onsets, and then the grouping phase clusters features having similar characteristics to achieve the separation. But since these systems are mostly hand-crafted for the feature extraction they can not perform well on very noisy environments and therefore on real world application. 
 
 Factorization models such as the Non Negative Matrix Factorization \cite{SNMF, NMFalgo} (NMF or NNMF) consist in learning in a supervised or unsupervised manner a good factorization of a learnt dictionnary and activatons bases from spectrograms magnitudes. Then the learnt bases can be used to separate the speaker voice they are associated to. But NMF methods are very costly and generate weak representation for the source separation problem. Moreover, NMF struggles to generalize to new environments and voices, it is more successful in structured signals like in music.
-All theses previous methods did not have very good performances for the multi speaker separation problem because of they struggle generalizing to other speakers.
+All theses previous methods did not have very good performances for the multi-speaker separation problem because of they struggle generalizing to other speakers.
 
 With its success in many areas like image processing, Deep Learning has recently been as well intensively applied in the audio processing domain. For instance, architectures such as WaveNet \cite{WaveNet} and more recently Tacotron 2 \cite{Tacotron2} have brought a huge leap in terms of performances compared to previous techniques in speech synthesis from text.
 
 In the area of speech enhancement, which is closely related to source separation, fully connected networks \cite{DLSS}, stacked LSTM layers \cite{SELSTM, DAVSE}, deep stacked autoencoders \cite{AESE} and more recently residual networks (ResNet) coupled with visual information \cite{SpeechEnh} significantly improved the results in this domain in terms of Signal to Noise Ratio (SNR).
 
-For the source separation problem, the first works involving deep neural networks tried to directly infer binary or soft masks using fully connected networks \cite{DNNSS, MASKDNN, MasksDNN, MASKDNN2}, CNN \cite{CNNrecog, Karaoke} and later networks such as stacked recurrent neural networks \cite{RNNSS, DNNSS2} and LSTM \cite{OverviewSSDL,LSTMSS, SpeechEnh} were used to perform this task. In \cite{AESS, AESS2} a unique  denoising autoencoder per source was trained to extract especially this latter. In addition, applying clustering algorithm on the latent representation of an autoencoder trained on spectrograms magnitudes of speakers mixtures did not lead to a good separation \cite{AESSsimple}. All these first methods have a drawback that is a bad generalization since they are all class-based  methods and therefore are good on the targets they were trained on. 
+For the source separation problem, the first works involving deep neural networks tried to directly infer binary or soft masks using fully connected networks \cite{DNNSS, MASKDNN, MasksDNN, MASKDNN2}, CNN \cite{CNNrecog, Karaoke} and later networks such as stacked recurrent neural networks \cite{RNNSS, DNNSS2} and LSTM \cite{OverviewSSDL,LSTMSS, SpeechEnh} were used to perform this task. In \cite{AESS, AESS2} a unique  denoising autoencoder per source was trained to extract especially this latter. In addition, applying clustering algorithm on the latent representation of an autoencoder trained on spectrograms magnitudes of speakers mixtures did not lead to a good separation \cite{AESSsimple}. All these first methods have a drawback that is a bad generalization since they are all class-based methods and therefore are good only on the targets they were trained on. 
 
 In the task of voice and music separation, \cite{Karaoke} is one of the first work infering masks to separate music and lyrics with CNN layers, later, \cite{chimera} using the Deep Clustering method coupled with direct mask inference significantly improved the results in this area.
 
-Today's methods performing well in terms of SDR improvement for the single channel multi-speaker separation problem are deep learning architectures outputting discriminative embeddings for each TF-bins in order to be able to separate all the sources. Deep Clustering \cite{DPCLV1} is the first work introducing this method for the source separation problem, other other works such as Deep Attractor Network (DANet) \cite{DANet} and Source Contrastive Estimation (SCE) \cite{SCE} followed this approach. In parallel, Permutation Invariant Training (PIT) \cite{PIT, PIT1, PIT_recog} method used first CNN and now BLSTM layers to infer soft mask, compared to previous works directly inferring masks with such deep neural architectures, PIT is able to solve the permutation by considering all the possible permutation in output and is trained on the most probable match. 
+Today's methods performing well in terms of SDR improvement for the single channel multi-speaker separation problem are deep learning architectures outputting discriminative embeddings for each TF-bins in order to be able to separate all the sources. Deep Clustering \cite{DPCLV1} is the first work introducing this method for the source separation problem, other works such as Deep Attractor Network (DANet) \cite{DANet} and Source Contrastive Estimation (SCE) \cite{SCE} followed this approach. In parallel, Permutation Invariant Training (PIT) \cite{PIT, PIT1, PIT_recog} method used first CNN and now BLSTM layers to infer soft mask, compared to previous works directly inferring masks with such deep neural architectures, PIT is able to solve the permutation by considering all the possible permutation in output and is trained on the most probable match. 
 
-Other works on the source separation problem  combines the use of audio mixtures and videos \cite{DAVSE, ImageSS, SpeechEnh}, and show that this additional visual information can lead to similar and even better results than previous methods. In particular, \cite{ImageSS} shows that the deep neural networks coupled with videos are mostly focusing their attention on the speaker mouth to identify who is speaking.
+Other works on the source separation problem  combine the use of audio mixtures and videos \cite{DAVSE, ImageSS, SpeechEnh}, and show that this additional visual information can lead to similar and even better results than previous methods. In particular, \cite{ImageSS} shows that the deep neural networks coupled with videos are mostly focusing their attention on the speaker mouth to identify who is speaking.
 
 
 In \cite{TAS, Adaptive}, end-to-end non-linear architectures that are based on the autoencoder principle are applied directly on audio signals without using the STFT operation as preprocessing. 
@@ -835,23 +842,24 @@ In this section, we explain in details how Deep Clustering can efficiently separ
 
 \subsection{Discriminative Embeddings}
 \label{DE}
-Deep Clustering is using the spectrogram magnitude
-These spectrograms are fed into a deep neural network that is outputting embeddings $V = f_\theta(x) \in \mathbb{R}^{T \times F \times E}$. With $E$ the size of the embedded space.
+
+Deep Clustering method is using chunks of spectrogram magnitude as input and these latter are fed into a deep neural network that is outputting embeddings $V = f_\theta(x) \in \mathbb{R}^{T \times F \times E}$. With $E$ the size of the embedded space.
 Beside theses embeddings, a target partition matrix $Y \in \mathbb{N}^{T \times F \times C}$ is created,  with $C$ designating the number of speaker in the input mixture. This matrix is defined so that $y(t,f)^{(c)} = 1$ if the speaker $i$ is dominant at the $(t,f)$ bin, $y(t,f)^{(c)} = 0$ otherwise, corresponding to the Ideal Binary Mask of the mixture. The affinity matrix $A = YY^{T}$ is then created and the estimated affinity matrix can be constructed with the inferred embeddings $V$ with $\hat{A}=VV^{T}$. The network is then trained such that $A$ equals $\hat{A}$ with the following cost function:
 \[L_{DPCL}(\theta) = \norm{ A - \hat{A}}^2_F =  \norm{ YY^{T} - VV^{T}}^2_F \]
  
-The deep neural architecture used in this study is a two stacked BLSTM of 600 hidden unit (300 units in each LSTM cell) with a feedforward neural network projecting the output in the embedded space of size $E$. This neural network is trained on the objective defined previously with spectrogram mixtures and the ideal binary mask used to construct the affinity matrix $YY^T$. Each generated embeddings by the deep neural architecture is unit normed.
+The deep neural architecture used in Deep Clustering is a two stacked BLSTM of 600 hidden unit (300 units in each LSTM cell) with a feedforward neural network projecting the output in the embedded space of size $E$. This neural network is trained on the objective defined previously with spectrogram mixtures and the ideal binary mask used to construct the affinity matrix $YY^T$. Each generated embeddings by the deep neural architecture is unit normed.
 
-During the inference phase, Deep Clustering method can solve the permutation problem using three different methods. The first one consists in giving in input the whole utterance to separate each source, in this case, k-means is used on the generated embeddings to create the partitions corresponding to each speaker. Secondly, instead of giving the whole mixture, like in the training, the embeddings are inferred on utterance chunks and k-means is applied on each chunk. But a permutation problem has to be solved in order to assure a continuity between each chunk, and to do so they compute the permutation giving the lowest $L^2$ distance between the whole separated spectrograms and the original one. In their paper, both method could deliver 
+During the inference phase, Deep Clustering method can solve the permutation problem using three different methods. The first one consists in giving in input the whole utterance to separate each source, in this case, k-means is used on the generated embeddings to create the partitions corresponding to each speaker and generate binary masks that are applied on the input spectrogram. Secondly, instead of giving the whole mixture, like in the training, the embeddings are inferred on utterance chunks and k-means is applied on each chunk. But a permutation problem has to be solved in order to assure a continuity between each chunk, and to do so they compute the permutation giving the lowest $L^2$ distance between the whole separated spectrograms and the original one.
+
 \subsection{End-to-end architecture}
 \label{EEA}
 
-As explained, the first version of Deep Clustering \cite{DPCLV1} approach constructs binary masks via the k-means algrithm applied on the embeddings to perform source separation. In their second paper \cite{DPCLV2}, they introduced an additional layer to transform these binary masks into soft masks and applied a soft differentiable version of k-means in order to finetune the whole network. The final network consists of the deep clustering part, the soft k-means and finally the enhancement layer.
+As explained, the first version of Deep Clustering \cite{DPCLV1} approach constructs binary masks via the k-means algorithm applied on the embeddings to perform source separation. In their second paper \cite{DPCLV2}, the authors introduced an additional layer, named the 'enhancement layer' to transform these binary masks into soft masks. In addition, a soft differentiable version of k-means is used in order to finetune the whole network. The final network consists of the deep clustering part, the soft k-means and finally the enhancement layer.
 Furthermore, they improved their architecture by adding regularization such as dropout and gradient normalization during the training phase. They have shown as well that using more stacked BLSTM with a smaller number of units inside each LSTM leads to better results.
-In addition, they \textbf{pretrain} their network on small context window of size 100 and then finetuned it with a context window of 400. Finally, an end-to-end training was applied to finetune the whole network and led the best result they could obtain.
+In addition, they pretrain their network on small context window of size 100 and then finetuned it with a larger context window of size 400. Finally, an end-to-end training was applied to finetune the whole network and is leading the best result they could obtain.
 
 The enhancement layer consists in concatenating the separated spectrogram magnitudes with the spectrogram magnitude of the mixture along the frequency axis: $Y_j = [\tilde X_j, X] \in \mathbb{R}^{T\times 2F}, j \in [1\dots M]$.
- This tensor is fed to a BLSTM network followed by a feedforward neural network projecting the output on $z \in \mathbb{R}^{S\times TF}$. This output represents the new assignement for each separated speaker. A softmax function is then applied in order to output new soft masks $\tilde m_i$ in $[0,1]$:
+ This tensor is to network made of BLSTM layers and followed by a feedforward neural network projecting the output on $z \in \mathbb{R}^{S\times TF}$. This output represents the new assignement for each separated speaker. A softmax function is then applied in order to output new soft masks $\tilde m_i$ in $[0,1]$:
 \[
 \tilde m_i = softmax(z)_i  = \frac{e^{z_i}}{\sum_j{e^{z_j}}} 
 \]
@@ -862,15 +870,16 @@ Then these masks are applied on the mixture spectrogram to separate each source:
 \tilde X_i = \tilde m_i \cdot X
 \]
 
-The loss function for the enhancement layer consists in computing the minimum $L_2$ distance between the infered separated spectrogram for all possible permutations $\mathbf{P}$ and the orginal one as follow:
+The loss function for the enhancement layer consists in computing the minimum $L_2$ distance between the inferred separated spectrograms and the original one for all possible permutations $\mathbb{P}$:
 
 \[
-L(\theta)_{enh} = min_{\pi \in \mathbf{P}(M)} \sum_{c} \sum_{t,f} (X_{c}(t,f) - \tilde X_{\pi(c)}(t,f))^2
+L(\theta)_{enh} = min_{\pi \in \mathbb{P}(M)} \sum_{c} \sum_{t,f} (X_{c}(t,f) - \tilde X_{\pi(c)}(t,f))^2
 \]
 
 We implement this layer to first reproduce the results of DPCL \cite{DPCLV2} and secondly to apply it to the SCE method in order to enhance its results.
 
 \section{Source Contrastive Estimation (SCE)}
+\label{SCE}
 
 \begin{figure}[h]
 \centering
@@ -887,33 +896,33 @@ We implement this layer to first reproduce the results of DPCL \cite{DPCLV2} and
 \caption{Inference phase of SCE}
 \label{fig:inference} 
 \end{subfigure}
-\caption[Architecture of SCE approach - Training and Inference phases]{ Architecture of the Source Contrastive Estimation method. In \autoref{fig:training} is described the training phase: it consists in producing discriminative embeddings from a mixture spectrogram and then pulling together embeddings from a specific speaker or pushing away embeddings from a different speaker via the loss function defined in this section. In \autoref{fig:inference}, the inference phase consists in producing embeddings and applyting a clustering algorithm such as k-means in order to produce masks and separate each source from the mixture - the figures are from \cite{SCE}}
+\caption[Architecture of the SCE approach - Training and Inference phases]{ Architecture of the Source Contrastive Estimation method. In \autoref{fig:training} is described the training phase: it consists in producing discriminative embeddings from a mixture spectrogram and then pulling together embeddings from a specific speaker or pushing away embeddings from a different speaker via the loss function defined in this section. In \autoref{fig:inference}, the inference phase consists in producing embeddings and applying a clustering algorithm such as k-means in order to produce masks and separate each source from the mixture - the figures are from \cite{SCE}.}
 \label{fig:sce} 
 
 \end{figure}
 
-The Source Contrastive Estimation method (SCE) \cite{SCE} is based on the same approach than Deep Clustering consisting in generating contrastive embeddings in order to apply clustering, create masks and separate all the sources. This method is based on the \textit{word2vec} work.
-Instead of learning to approximate the affinity matrix $A = YY^{T}$, the Source Contrastive Method applies a stronger constraint on the generated embeddings. \textbf{TODO : details}
+The Source Contrastive Estimation method (SCE) \cite{SCE} is based on the same approach than Deep Clustering consisting in generating discriminative embeddings in order to apply clustering, create masks and separate all the sources.
+Instead of learning to approximate the affinity matrix $A = YY^{T}$, the SCE method applies a stronger constraint on the generated embeddings by constructing embedded vectors $V_o \in \mathbb{R}^{S\times E}$ representing each known speaker and training the outputted embeddings by the neural network $V_i \in \mathbb{R}^{T \times F \times E}$ to be mutually contrasted with $V_o$. This method is inspired from \textit{word2vec} \cite{word2vec} where here each vectors $v_o$ represents a specific known speaker from the dataset and corresponds to word embeddings of word2vec. In addition, the masks $Y \in {\{-1, 1\}}^{T \times F \times M}$ are defined as $Y^{(i)}(t,f) = 1$ if the $i^{th}$ speaker is dominant at a specific TF-bin and $Y^{(i)}(t,f) = -1$ for non dominant speakers. In order to train the SCE network the following loss function is used:
 
-\
+\[L_{SCE}(\theta) = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(Y_{t,f}^{(s)} \cdot v_i(t,f)^{T} v_o^{(s)})\]
 
+This loss function tends to pull together the produced embeddings $v_i(t,f)$ and $v_o^{(j)}$ corresponding to the same speaker. Indeed, in the case where the $j^{th}$ speaker is dominant then $Y_{t,f}^(j)=+1$ which tends to pull vectors together. On the contrary, if the $j^{th}$ speaker is not dominant then $Y_{t,f}^(j)=-1$ and the embedded vectors are pushed away from each other.
 
-\[L(\theta) = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(Y_{t,f}^{(s)} \cdot v_i(t,f)^{T} v_o^{(s)})\]
+During the training phase (\autoref{fig:training}), the SCE method uses the loss function $L_{SCE}(\theta)$ and train the network the generate constrastive embeddings $V_i$ to be close to the speaker vector $V_o$ they correspond to. During the inference phase (\autoref{fig:inference}), the outputted embeddings $V_i$ are clustered using the k-means algorithm to create binary masks and separate each speaker from the mixture.
 
-This loss function tends to pull together embeddings and speaker vector from the same speaker and on the contrary tends to push away the one not belonging to a specific speaker.
-
+In \autoref{sota}, we reproduce the results obtained by the Source Contrastive Estimation and show that using the improvements introduced in \autoref{contrib} this method can significantly improve the current state of the art for 2 speakers mixtures separation.
 
 \section{Deep Attractor Network (DANet)}
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.6\textwidth]{danet}
-\caption[Deep Attractor Network Architecture]{ Deep Attractor Network (DANet) organisation. During the training phase DANet use the ideal masks produced from the mixture to compute the attractors and then compute the associated masks to separate each source and apply its loss function. During the inference phase, DANet uses the K-means algorithm to cluster the embedded space and construct the attractors - Figure from \cite{DANet}}
+\caption[Deep Attractor Network Architecture]{ Deep Attractor Network (DANet) organisation. During the training phase DANet use the ideal masks produced from the mixture to compute the attractors and then compute the associated masks to separate each source and apply its loss function. During the inference phase, DANet uses the K-means algorithm to cluster the embedded space and constructs the attractors - Figure from \cite{DANet}.}
 \label{fig:danet}
 \end{figure}
 
 Deep Attractor Network (DANet) \cite{DANet} method has been proposed 
-after Deep Clustering and and is using the same atchitecture than this latter. Compared to SCE and Deep Clustering, DANet can directly infers the separation masks from the outputted discriminative embeddings. To do so, DANet creates what the authors are calling \textbf{attractors}, they are the mean vectors of the embeddings belonging to each speaker, this embedded vectors can be seen as a speaker identifier vector and are defined as:
+after Deep Clustering and and is using the same architecture than this latter. Compared to SCE and Deep Clustering, DANet directly infers the separation masks from the outputted discriminative embeddings. To do so, DANet creates what the authors are calling \textbf{attractors}, they are the mean vectors of the embeddings belonging to each speaker, this embedded vectors can be seen as a speaker identifier vector and are defined as:
 
 \[a_s = \frac{\sum_{t,f}{Y_{(t,f)}^{(s)}V_{t,f} }}{\sum_{t,f}{Y_{(t,f)}^{(s)}}} = \frac{{Y_s^TV}}{\sum_{t,f}{Y_{(t,f)}^{(s)}}}\]
 
@@ -926,7 +935,7 @@ Finally, to project these assignements into the $[0, 1]$ interval, the $sigmoid$
 
 \[\tilde{m_s} = f(d_s) \in [0,\dots,1] \]
 
-Once masks are inferred, these latter are compared to  ideal binary masks using the $L_2$ loss:
+Once masks are inferred, these latter are compared to the ideal binary masks using the $L_2$ loss:
 
 \[L_\theta(x) = \sum_{i=1}^{M} \norm{X \cdot (m_j - \tilde{m_j})}^2_2 \]
 
@@ -934,11 +943,11 @@ During the training phase, the network is taught to produce the best reconstruct
 
 During the inference phase, since the assignements of each TF-bin is unknown, attractors are computed using K-means algorithm. In DANet paper, it is shown that using K-means is leading to the best results. The authors compared this approach with the use of fixed attractors computed from a test set, but this method is limitations the generalization efficiency of the network since these fixed attractors are based on known data and therefore make the method less flexible.
 
-In \autoref{contrib:danet}, we add DANet loss function to the SCE approach as a regularization for the training phase.
+In \autoref{contrib:danet}, we add DANet loss function to the SCE approach as a regularization for the training phase and show that this approach can improve SCE results.
 
 \chapter{Contributions}
 
-In this chapter we present in more detail the contributions mentioned in \ref{contrib}. Firstly, we describe the architecture we use to replace the use of spectrogram magnitude as inputs and that we use with Deep Clustering and Source Contrastive Estimation. Secondly, we describe the improvements we propose for the SCE method, such as using a soft version of k-means, negative sampling, a silent loss function and other approaches brought by \cite{DPCLV2}, the second version of Deep Clustering.
+In this chapter we present in more detail the contributions mentioned in \ref{contrib}. Firstly, we describe the architecture we use to replace the use of spectrogram magnitude as inputs. Secondly, we describe the improvements we propose for the SCE method, such as using the soft version of k-means, negative sampling, a silent loss function and other approaches brought by \cite{DPCLV2}, the second version of Deep Clustering.
 
 \section{The Adaptive Layer}
 \label{adapt}
@@ -1018,23 +1027,23 @@ In this chapter we present in more detail the contributions mentioned in \ref{co
 
 \end{tikzpicture}
 }
-\caption[Architecture of the Adaptive Layer during the pretraining phase]{Architecture of the Adaptive layer during the \textbf{pretraining phase}. The inputs are the audio mixture concatenated with each original speech. These latter are fed to the Front-end and masks are computed from the original speech latent representation. Finally, these masks are applied on the mixture latent representation and reconstructed via the back-end layer. }
+\caption[Architecture of the Adaptive Layer during the pretraining phase]{Architecture of the Adaptive layer during the \textbf{pretraining phase}. The inputs are the audio mixture concatenated with each original speech. These latter are fed to the front-end and masks are computed from the original speeches latent representations. Finally, these masks are applied on the mixture latent representation and reconstructed via the back-end layer. }
 \label{fig:adaptpret}
 \end{figure}
 
 
-The main idea in this section is based on an end-to-end architecture presented in \cite{Adaptive}. This work shows that the use of a non linear autoencoder directly on audio mixture can lead to better performances than using the DCT of these latter. This autoencoder consists in two main parts, as explained in Section \ref{AE}, a front-end creating a latent representation of the input and a back-end reconstruction the input.
+The main idea in this section is based on an end-to-end architecture presented in \cite{Adaptive}. This work shows that the use of a non linear autoencoder directly on audio mixture can lead to better performances than using the DCT of these latter. This autoencoder consists in two main parts, as explained in section \ref{AE}, a front-end creating a latent representation of the input and a back-end reconstruction the input.
 
-Our idea is to apply such an approach to the current deep learning state of the art methods - in this study DPCL and SCE - in order to see if this method can lead to any improvement.
+Our idea is to apply such an approach to the current deep learning state of the art methods - in this study DPCL and SCE - in order to see if this method can lead to any improvement for the multi-speaker separation problem.
  
-First of all, since Deep Clustering and Source Constrastive Estimation methods are not trained in an end-to-end way, meaning that the output of the network during the training phase does not lead to the reconstruction of the separated signals, then it is impossible to simply add such an architecture '\textit{around}' the deep neural architectures and train it as a whole. In fact, if we want to train one of these methods using an autoencoder, then only its front-end part can be plug on since the network does not output separated inputs and therefore the autoencoder can not be trained during the training phase of these two methods. Moreover, if only the front-end is used during the training phase then the latent representation will not have any sense in terms of feature extraction since the reconstruction phase is absent. 
+First of all, since Deep Clustering and Source Constrastive Estimation methods are not trained in an end-to-end way, meaning that the output of the network during the training phase does not lead to the reconstruction of the separated signals, then it is impossible to simply add such an architecture '\textit{around}' the deep neural architectures and train it as a whole. In fact, if we want to train one of these methods using an autoencoder, then only its front-end part can be plugged on since the network does not output separated inputs and therefore the autoencoder can not be trained during the training phase of these two methods. Moreover, if only the front-end is used during the training phase then the latent representation will not have any sense in terms of feature extraction since the reconstruction part is absent. 
 
 The solution we propose consists in pretraining the autoencoder ( \autoref{fig:adaptpret} for the multi-speaker separation problem. The main difference with standard autoencoders is that in this case we do not train to reconstruct the input but to reconstruct the separated audio speeches. To do so, the autoencoder is \textbf{(1)} fed with a \textbf{mixture of signals and the original signals from this mixture}, then \textbf{(2)} computes the separation and \textbf{(3)} reconstructs each separated signals.
 
 To perform these three operations, we present a \textbf{sparse linear autoencoder} consisting of a front-end layer, a separation operation and a back-end layer. The front-end layer is a one-dimensional convolution operation and a max-pooling layer and the back-end layer is composed by an unpooling and a deconvolution layer.
 
-\textbf{Front-end layer}
-As mentioned, the input consists in a audio mixture $x = \sum_{j=1}^{M}{x_j} \in \mathbb{R}^L$ with the original signals $x_j \in \mathbb{R}^L$, $M$ being the number of mixed signals. We name $X$ the output of the front-end layer corresponding to $x$ and $X_j$ the outputs corresponding to the original signals $x_j$. Since we want to perform a quasi perfect separation between the encoder and the decoder, the front-end layer must be as linear as possible. Indeed, if the linearity is lost by this latter $X \simeq \sum_{j=1}^{M}{X_j}$ does not hold and therefore it is not possible to apply filters in order to separate each signal.
+\textbf{Front-end layer:}
+As mentioned, the input consists in a audio mixture $x = \sum_{j=1}^{M}{x_j} \in \mathbb{R}^L$ with the original signals $x_j \in \mathbb{R}^L$, $M$ being the number of mixed signals. We name $X$ the output of the front-end layer corresponding to the mixture input $x$ and $X_j$ the outputs corresponding to the original signals $x_j$. Since we want to perform a quasi perfect separation between the encoder and the decoder, the front-end layer must be as linear as possible. Indeed, if the linearity is lost by this latter $X \simeq \sum_{j=1}^{M}{X_j}$ does not hold and therefore it is not possible to apply filters in order to separate each signal.
 The front-end we define is composed of two operations. The first one is a \textbf{one-dimensional convolution operation} applied on the inputs as follow:
 
 \[Y = 1DConv(x) = W_{f} \ast x = (|\omega| \cdot B) \ast x\]
@@ -1045,23 +1054,23 @@ This convolution layer is followed by a \textbf{maxpooling operation} along the 
 
 \[X = maxpool(Y, m)\]
 
-This maxpooling layer is a non-linear operation but for $M = 2$, we can suppose that $X \simeq \sum_{j=1}^{M}{X_j}$. We will see in Section \ref{adapt} that the maxpooling operation in the Adaptive layer is indeed a drawback for the reconstruction for $M > 2$ but that this operation is necessary to have a decent sparsity in the latent representation.
+This maxpooling layer is a non-linear operation but for $M = 2$, one can suppose that $X \simeq \sum_{j=1}^{M}{X_j}$. We will see in Section \ref{adapt} that the maxpooling operation in the Adaptive layer is indeed a drawback for the reconstruction for $M > 2$ but that this operation is necessary to have a decent sparsity in the latent representation.
 
 \textbf{Separation:} Once the encoder outputs are computed it is possible to separate the mixture representation using the original separated signals representation. For instance, $m_j$ is the mask extracting the $j^{th}$ original signal and is computed as:
 
 \[m_j = \frac{X_j}{\sum_j{X_j} + \epsilon} \simeq  \frac{X_j}{X + \epsilon}\]
 
-The it suffices to apply these masks on the mixture representation to have the separated audio speeches:
+Then it suffices to apply these masks on the mixture representation to have the separated audio speeches:
 
 \[\tilde X _j = m_j \cdot X\]
 
 \textbf{Back-end layer:} The decoder is processing the separated latent representations to reconstruct the original signals. First, it applies an unpooling and then a deconvolution operation. The unpooling operation we use is following the method proposed in \cite{unpool} that is putting the values where the maximum values were computed by the maxpooling of the front-end, with zeros anywhere else. This method presents better results than gathering the values at the up-left corner of each unpooled patches because it is structurally preserving information. Then, the deconvolution layer has the structure as the front-end convolution but does not share the same weights. We name the reconstructed separated signals $\tilde x _j$
 
-\textbf{Objective function}: To train our autoencoder we are using the Mean Square Error (MSE) loss with a sparsity constraint and an additional loss that we name the \textit{overlapping} loss:
+\textbf{Objective function}: To train our autoencoder we are using the $L_2$ loss with a sparsity constraint and an additional loss that we name the \textit{overlapping} loss:
 
-\[L_\theta(x) = \frac{1}{M}\sum_{j=1}^{M}{\norm{x_j - \tilde{x}_j}}^2 + \beta KL(\rho, \hat{\rho}) + \alpha \cdot \frac{1}{\binom{M}{2}} \sum_{X_i,X_j}overlapping(X_i, X_j)\]
+\[L(\theta) = \frac{1}{2}\sum_{j=1}^{M}{\norm{x_j - \tilde{x}_j}}^2 + \beta KL(\rho, \hat{\rho}) + \alpha \cdot \frac{1}{\binom{M}{2}} \sum_{X_i,X_j}overlapping(X_i, X_j)\]
 
-The overlapping loss function is added in order to reduce the overlapped number of information and therefore push out model to learn good bases functions to distinguish well each signals. This loss is comparing each couples of the sparse representations generated by the front-end layer (without considering the one involving the mixture of all the signals). For a couple $(X,Y)$
+The overlapping loss function is added in order to reduce the overlapped amount of information and therefore push the model to learn good bases functions to distinguish well each signals. This loss is comparing each couples of the sparse representations generated by the front-end layer (without considering the one involving the mixture of all the signals). For a couple $(X,Y)$
 \[overlapping(X, Y) = \sum_{i,j} \frac{max(X_{i,j},Y_{i,j})-||X_{i,j}|-|Y_{i,j}||}{max(X_{i,j},Y_{i,j})} \] 
 
 
@@ -1207,22 +1216,33 @@ The overlapping loss function is added in order to reduce the overlapped number 
 \label{fig:adaptfinetuning}
 \end{figure}
 
-In Section \ref{adapt}, we present the results with different hyperparameters for the pretraining phase of the Adaptive layer. Then we apply the pretrained front-end to DPCL and SCE to train these deep neural networks (\autoref{fig:adapttrain}) and we finally plug the back-end layer to finetune the whole network (\autoref{fig:adaptfinetuning}). But to be able to finetune the whole network, the clustering operation must be differentiable.
+In Section \ref{adapt}, we present the results with different hyperparameters for the pretraining phase of the Adaptive layer. Then we apply the pretrained front-end to DPCL and SCE to train these deep neural networks (\autoref{fig:adapttrain}) and finally, we plug the back-end layer to finetune the whole network (\autoref{fig:adaptfinetuning}). But to be able to finetune the whole network, k-means algorithm must be differentiable, what is not the case with its classical hard version.
 
 \section{Soft K-Means implementation}
 \label{contrib:kmeans}
-As explained in Section \ref{EEA}, the second version Deep Clustering used a soft version of k-means in order to be able to apply backpropagation on the whole network and therefore being able to finetune it in an end-to-end way. In this section we will explain what this soft k-means algorithm consists in and how we implemented it efficiently on the TensorFlow framework.
 
-The idea of using a soft version of k-means is to first be able to apply backpropagation on the whole network since the $argmax$ function used in the hard version is not differentiable and secondly, to produce softer masks and thus improve the separation. 
+As explained in section \ref{EEA}, the second version Deep Clustering used a soft version of k-means in order to be able to apply backpropagation on the whole network and therefore being able to finetune it in an end-to-end way. In this section we will explain what this soft k-means algorithm consists in and how we implemented it efficiently on the TensorFlow framework.
 
-Let's consider the separation of $L$ points $x \in \mathbb{R}^E$ in $K$ clusters. Firstly, it consists in computing the soft assignment $\gamma$ of each point of the dataset to the centroids $\mu \in \mathbb{R}^{K\times E}$ that are randomly initialized. The assignment of the $i^{th}$ element to the $c^{th}$ cluster is defined as:
+The idea of using a soft version of k-means is to first be able to apply backpropagation on the whole network since the $argmax$ function used in the hard version is not differentiable and secondly, to produce softer masks and thus improve the separation accuracy. 
+
+Let's consider the separation of $L$ embeddings $v \in \mathbb{R}^E$ in $K$ clusters. Firstly, soft k-means consists in computing the soft assignment $\gamma$ of each point of the dataset to the centroids $\mu \in \mathbb{R}^{K\times E}$ that are randomly initialized. The assignment of the $i^{th}$ element to the $c^{th}$ cluster is defined as:
 
 \[ \gamma_{i,c} = \frac{e^{-\beta |v_i-\mu_c|^2}}{\sum_{c^\prime} e^{-\beta |v_i-\mu_c^\prime|^2}}  \]
 
-Then each centroid is updated as being the average sum of the point assignements
+Then each centroid is updated as the weighted average of the points according to their soft assignements. These two steps are repeated until a certain criteria of convergence for each $\mu_c$.
 
 \[ \mu_c = \frac{\sum_i \gamma_{i,c}w_iv_i}{\sum_i \gamma_{i,c}}  \]
 
+In the Deep Clustering paper, authors propose not to consider embeddings whose TF-bin are silent according to a certain threshold $\tau$ in dB during the centroids update operation using a mask $w \in {\{0,1\}}^{TF}$ defined as:
+
+$$
+w_i =  \left\{
+    \begin{array}{ll}
+        1 & \mbox{if } 10\log (\frac{|X_i|}{max(|X|)}) < \tau \mbox{ in } dB  \\
+        0 & \mbox{else}
+    \end{array}
+\right.
+$$
 
 This algorithm can actually be interpreted as an Expectation Maximization (EM) with Gaussian Mixture Models (GMM) with a common shared variance. Indeed, a Gaussian Mixture Model is a weighted linear combination of gaussians and is defined as follow:
 
@@ -1236,22 +1256,20 @@ With:
 N(x, \mu_i,\sigma_i) = \frac{1}{\sigma_i \sqrt{2\pi}} e^{\frac{(x-\mu_i)^2}{\sigma_i^2}}
 \]
 
-The first step of the EM method is the expectation step which compute the probabilities for each to point to each gaussian in the mixture, $p(k|x)$ that is the prior probabilities. This step computes what is called the \textit{responsibility}, i.e. how much each gaussian is responsible for each data. The responsabilities correspond to the assignements and are computed using the Bayes rule:
+The first step of the EM method is the expectation step which computes $p(k|x)$, the prior probabilities. This step computes what is called the \textit{responsibility}, i.e. how much each gaussian is responsible for each data. The responsabilities correspond to the assignements and are computed using the Bayes rule:
 
 \[
 \gamma_i(x) = p(i|x) = \frac{p(i)p(x|i)}{p(x)} = \frac{\pi_i N(x, \mu_k,\sigma_k)}{\sum_j \pi_j N(x, \mu_j,\sigma_j)}
 \]
 
-We can see that if we consider this mixture as being non weighted and having a shared variance then we obtain:
+We can see that if we consider this mixture as being non weighted and having a shared variance then we obtain the same formula that is:
 
 \[
 \gamma_i(x) = \frac{N(x, \mu_k,\sigma)}{\sum_j N(x, \mu_j,\sigma)} = \frac{e^{\frac{(x-\mu_i)^2}{\sigma^2}}}{\sum_j e^{\frac{(x-\mu_j)^2}{\sigma_i^2}}} 
 \]
 
-
-
-Here $\beta$ is named the \textit{stiffness} and can be seen as the inverse variance of the Gaussian Mixture Models. Therefore, if $\beta$ is small the gaussian variance will be large and each point will have a higher degree of assignement, in the contrary, for large values the gaussians are narrow and the algorithm is close to its hard version.
-
+Here $\beta$ is named the \textit{stiffness} and can be seen as the inverse variance of the Gaussian Mixture Models. Therefore, if $\beta$ is small the gaussian variance will be large and each point will have a higher degree of assignement, in the contrary, for large values the gaussians are narrow and the algorithm is close to its hard version. \autoref{fig:softhard}
+ shows the difference between the hard and the soft k-means algorithm.
 
 \begin{figure}[h]
 \centering
@@ -1268,16 +1286,22 @@ Here $\beta$ is named the \textit{stiffness} and can be seen as the inverse vari
 \label{fig:soft} 
 \end{subfigure}
 
-\caption[Hard and soft K-means comparison]{Comparison of the hard and soft version of K-means on embeddings ouputted by the SCE method.}
-\label{fig:pretrainingadapt} 
+\caption[Hard and soft K-means comparison]{Comparison of the hard and soft version of K-means on embeddings outputted by the SCE method.}
+\label{fig:softhard} 
 
 \end{figure}
-Implementing hard k-means and soft k-means with TensorFlow presented several challenges. First, our version has to be able to handle the whole minibatch of embeddings $V\in R^{B\times TF \times E}$. Indeed, if k-means is applied iteratively on each sample of embeddings this would require a high amount of time and since an unique GPU is used, these operations can not be run in parallel. Therefore, in order to speed up the training time, our implemention is computing hard and soft k-means for a batch of data, at the same time. There was no necessary trick needed for the soft version since assignements and the centroids updates formulas can be extended to batches using tensors multiplications. Whereas with the hard version the assignements designate only one particular cluster, and to compute $\sum_i x[i = c]$ during the centroids update, the function \textit{tf.unsorted\_segment\_sum} is used to sum the vectors belonging to the same cluster for all the batches at the same time in order to speed up the computation and avoid using loops. But using \textit{tf.unsorted\_segment\_sum} on all the batches leads to collisions of centroids labels because of the argmax function. To solve this problem we shift by $K$ the cluster assignement of the hard K-means for each batch.
 
-Secondly, we implemented as well the use of several tries in order to avoid bad centroids initialization and thus improve the accuracy of our algorithm. To do so, we repeat the input $T$ times along its first dimension in order to have $V\in R^{T \times B\times TF \times E}$, i.e. $T$ tries of $B$ batches of $TF$ vectors of dimension $E$. Seeing these $T$ tries of $B$ batches as $TB$ batches instead reduces this problem to the first one. Once the $TB$ batches are clustered and that the $\mu \in R^{TB\times K \times E}$ centroids are computed by the algorithm, for each batch $b$ the argument with minimum inertia among its tries is selected as the actual clusters to output.
+Implementing hard k-means and soft k-means with TensorFlow presented several challenges. First, our version has to be able to handle the whole minibatch of embeddings $V\in R^{B\times TF \times E}$. Indeed, if k-means is applied iteratively on each sample of embeddings this would require a high amount of time and since an unique GPU is used, these operations can not be run in parallel. Therefore, in order to speed up the training time, our implemention is computing hard and soft k-means for a minibatch of data, at the same time. There was no necessary trick needed for the soft version since the assignements and the centroids updates formulas can be extended to batches using tensors multiplications. Whereas concerning the hard version the assignements designate only one particular cluster, and to compute the averaged sum of vectors belonging to the same cluster during the centroids update, the function \textit{tf.unsorted\_segment\_sum} is used for all the element in the minibatch at the same time in order to speed up the computation and avoid using loops. But using \textit{tf.unsorted\_segment\_sum} on all the batches leads to collisions of centroids labels because of the argmax function. To solve this problem we shift by $K$ the cluster assignement of the hard k-means for each batch.
 
-We show in Section \ref{softkmeans} that using soft k-means for the SCE method increases the SDR improvement, but sometimes to the detriment of the SIR improvement.
+Secondly, we implemented as well the use of several tries in order to avoid bad centroids initialization and thus improve the accuracy of our algorithm. To do so, we repeat the input $Tr$ times along its first dimension in order to have $V\in R^{Tr \times B\times TF \times E}$, i.e. $Tr$ tries of $B$ batches of $TF$ vectors of dimension $E$. Seeing these $Tr$ tries of $B$ batches as $TrB$ batches instead reduces this problem to the first one. Once the $TrB$ batches are clustered and that the $\mu \in R^{TrB\times K \times E}$ centroids are computed by the algorithm, for each batch the argument with minimum inertia $a_t$ among its tries is selected as the best clustering output. For the soft k-means we define the inertia $a_t$ as:
 
+\[
+a_t = \sum_{j=1}^K \frac{\sum_{i=1}^L\norm{(v_i-\mu_j )\cdot \gamma_{ij}}^2 }{\sum_{i=1}^L\gamma_{ij}}
+, ~~ t \in [1,\dots, Tr]\] 
+
+The inertia is computing the sum of each cluster density, and thus the smallest inertia is representing the best clustering of all the points since it is the most compact.
+
+We show in \autoref{softkmeans} that using soft k-means for the SCE method increases the SDR improvement, but sometimes to the detriment of the SIR improvement.
 
 
 \section{Combining DANet and SCE methods}
@@ -1291,14 +1315,14 @@ The loss function used for such network is therefore:
 \[L(\theta) = L_{SCE}(\theta) + L_{DANet}(\theta)\]
 \[L(\theta) = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(Y_{t,f}^{(s)} \cdot v_i(t,f)^{T} v_o^{(s)}) +  \sum_{i=1}^{M} \norm{X \cdot (m_j - \tilde{m_j})}^2_2 \]
 
-Once the network is trained on this loss function, we don't use the masks we would get following the DANet method consisting in computing the attractors and then obtaining the masks through $m = sigmoid(d)$. Instead as it is done in the SCE approach, we compute k-means on the embedded space and then obtain the masks. One extension of this method would be to follow DANet approach to construct the masks.
+Once the network is trained on this loss function, we don't use the masks we would get following the DANet method consisting in computing the attractors and then obtaining the masks through $m = sigmoid(d)$. Instead as it is done in the SCE approach, we compute the soft k-means algorithm on the embedded space and then obtain the masks from the soft assignements. One extension of this method would be to follow DANet approach to construct the masks.
 
-We show in Section~\ref{DANET} that this approach is leading to better results for a mixture of 2 speakers of different and same gender.
-
+We show in \autoref{DANET} that this approach is leading to better results for a mixture of 2 speakers of different and same gender.
 
 \section{Negative Sampling for Source Contrastive Estimation}
 \label{contrib:NS}
-For the Source Contrastive Estimation method, training to separate two different genders is quite an easy task regarding the speakers embedded vectors since they only have to form two main clusters to correctly learn the difference between male and female speakers. But separating voice from the same gender and two different genders is more challenging since in this case not only two clusters have to be learnt but the number of speakers in the set. For instance, in our case, the LibriSpeech Corpus with 100 hours of speech contains 251 speakers (126 males and 125 females), thus to learn how to separate all possible of mixtures, the training phase has to study the relation between $\left(\! \begin{array}{c} 251 \\ 2 \end{array} \!\right) = $ couples. This is a very high number of couples to study and it might be impossible to have in input all the possible couples many times, even with a huge dataset generation. 
+
+For the Source Contrastive Estimation method, training to separate two different genders is quite an easy task regarding the speakers embedded vectors $V_o$ since they only have to form two main clusters to correctly learn the difference between male and female speakers. But separating voice from the same gender and two different genders is more challenging since in this case not only two clusters have to be learnt but the number of speakers in the training set. For instance, in our case, the LibriSpeech Corpus with 100 hours of speech contains 251 speakers (126 males and 125 females), thus to learn how to separate all possible of mixtures, the training phase has to study the relation between $\left(\! \begin{array}{c} 251 \\ 2 \end{array} \!\right) = 32640 $ couples. This is a very high number of couples to study and it might be impossible to have in input all the possible couples many times, even with a huge dataset generation. 
 
 
 \begin{figure}
@@ -1310,13 +1334,13 @@ For the Source Contrastive Estimation method, training to separate two different
 
 As we can see on \autoref{fig:pca}, learning with the SCE loss function on a mixture of 2 speakers with same and different genders leads to a speaker vectors embedded space forming a 'ring'. This repartition leads to areas with bad male/male, female/female contrasts but even male/female in the area between both main male and female clusters. 
 
-To tackle this problem, we propose to use \textit{Negative Sampling} method in order to extend the number of couples encountered during the training phase. This method is inspired from NEG objective function  defined in \cite{NS} where \textit{k} negative samples are drawn from a certain distribution. 
+To tackle this problem, we propose to use \textit{Negative Sampling} method in order to extend the number of couples encountered during the training phase. This method is inspired from NEG objective function defined in \cite{NS} where \textit{K} negative samples are drawn from a certain distribution. 
 
-In our case, the general approach consists in selecting, for a $(t,f)$ bin, $v_o^{(k)}, k \in 1,\dotsc,K$ speaker vectors different from the dominant speaker vector $v_{o_{+}}(t,f)$ at this specific bin. In other words, $v_o^{(k)} \in V_o^-(t,f) = V_o/_{v_o^+(t,f)}$, and we define $\mathfrak{B}(t,f) = \{v_o^{(k)}, k \in 1,\dotsc,K\}$ the $K$ sampled vectors at a $(t,f)$ bin. We define the new loss function applying Negative Sampling for SCE as follow:
+In our case, the general approach consists in selecting, for a $(t,f)$ bin, $v_o^{(k)}, k \in 1,\dotsc,K$ speaker vectors different from the dominant speaker vector $v_{o_{+}}(t,f)$ at this specific TF-bin. In other words, $v_o^{(k)} \in V_o^-(t,f) = V_o/_{v_o^+(t,f)}$, and we define $\mathfrak{B}(t,f) = \{v_o^{(k)}, k \in 1,\dotsc,K\}$ the $K$ sampled vectors at a $(t,f)$ bin. We define the new loss function applying negative sampling for SCE as follow:
 
 \[L_{NS}(\theta) = L_{SCE}(\theta) - \mu \frac{1}{K} \sum_{t,f} \sum_{v_o^{(s)} \in \mathfrak{B}(t,f)} \log \sigma(- v_i(t,f)^{T} v_o^{(s)}) \]
 
-The first term corresponds to the objective function defined in [CITE] and the second one the added Negative Sampling. In this term $Y_{t,f}^{(s)} = -1$ since we want the $K$ selected vectors to be \textit{pushed away} from the dominant speaker vector, and this is apply for each $v_i(t,f)$ embeddings. The negative sampling term is multiplied by a coefficient $\mu \in[0,1]$ in order to give priority to the first term since it is the main objective function. Indeed, these two members have both the same magnitude: for instance, choosing $\mu = 1$ would lead to an equivalence in terms of influence for the SCE loss and Negative Sampling loss, and thus, the network would struggle learning the constrast between each speaker vectors because the Negative Sampling term would add too much noisy information to the SCE loss. 
+The first term corresponds to the objective function defined in \autoref{SCE} and the second one the added negative sampling. In this term $Y_{t,f}^{(s)} = -1$ since we want the $K$ selected vectors to be \textbf{pushed away} from the dominant speaker vector, and this is apply for each $v_i(t,f)$ embeddings. The negative sampling term is multiplied by a coefficient $\mu \in[0,1]$ in order to give priority to the first term since it is the main objective function. Indeed, these two members have both the same magnitude: for instance, choosing $\mu = 1$ would lead to an equivalence in terms of influence for the SCE loss and negative sampling loss, and thus, the network would struggle learning the constrast between each speaker vectors because the negative sampling term would add too much noisy information to the SCE loss. 
 
 In addition, we introduce two approaches to define $\mathfrak{B}(t,f)$. The first one consists in randomly selecting $K$ other speaker vectors from $V_o^-(t,f)$. This approach is randomly pushing away $K$ other speaker vectors of the embedded space, and therefore will cover all the possible different couples many times during the training phase:
 
@@ -1324,18 +1348,18 @@ In addition, we introduce two approaches to define $\mathfrak{B}(t,f)$. The firs
 
 The second approach consists in selecting the K-Nearest Neighbors (KNN) vectors of $v_{o_{+}}(t,f)$ and move them away for it. This idea is based on the local bad contrast obtained between speaker vectors of the same gender and tends to a more spread out speaker vectors embedded space:
 
+\begin{align*}
+\resizebox{\textwidth}{!}{$\mathfrak{B}(t,f) = \mathfrak{B}_{KNN}(t,f) = \{v_o^{(i)} | \norm{v_{{(1)}}-v_o{_{+}}(t,f)} \leq \dots \leq \norm{v_{{(K)}}-v_o{_{+}}(t,f)}, i \in 1, \dotsc,K\}$}
+\end{align*}
 
-\[\mathfrak{B}(t,f) = \mathfrak{B}_{KNN}(t,f) = \{v_o^{(i)} | \norm{v_{{(1)}}-v_o{_{+}}(t,f)} \leq \dots \leq \norm{v_{{(K)}}-v_o{_{+}}(t,f)}, i \in 1, \dotsc,K\}\]
-
-In \autoref{NS}, we show the performances of this approach with different values for $K$ and $\mu$. We try this method with spectrograms magnitude and the Adaptive Layer.
-
+In \autoref{NS}, we show the performances of this approach, named SCE NS, with different values for $K$ and $\mu$. We try this method using the Adaptive Layer or spectrograms magnitude  and show that with this latter a random negative sampling approach can improve the state of the art for mixtures of 2 speakers.
 
 \section{General improvements of Source Contrastive Estimation}
 
 \subsection{Source Contrastive Estimation Silenced Loss}
 \label{contrib:silence}
 
-One drawback, we observed with the SCE objective function is that it is taking into account all the TF-bins embeddings $V \in R^{TF\times E}$ outputted by the neural network. The problem is that some of these TF-bins have very low energy and therefore are not very relevant since they don't hold much information about any specific speaker. Considering these almost silent bins is leading to a noisy training because some speaker embeddings will be equally trained on these noisy vectors and on the others holding much more information. Our solution implies to apply a mask on the loss function to omit these almost silent bins, as following:
+One drawback, we observed with the SCE objective function is that it is taking into account all the TF-bins embeddings $V \in R^{TF\times E}$ outputted by the neural network. The problem is that some of these TF-bins have very low energy (as it can be seen in \autoref{fig:spectrogram}) and therefore are not very relevant since they don't hold much information about any specific speaker. Considering these almost silent bins is leading to a noisy training because some speaker embeddings will be equally trained on these noisy vectors and on the others holding much more information. Our solution implies to apply a mask on the loss function to omit these almost silent bins, as following:
 
 \[L(\theta) = - \frac{1}{M} \sum_{t,f} \sum_{s} \log \sigma(W_{t,f}Y_{t,f}^{(s)}  \cdot v_i(t,f)^{T} v_o^{(s)})\]
 
@@ -1350,14 +1374,14 @@ W_{t,f} =  \left\{
 \right.
 $$
 
-In Section \ref{silentloss}, we show that using this silent mask is significantly improving SCE results with both spectrograms and the Adaptive layer.
+In \autoref{silentloss}, we show that using this silent mask is significantly improving SCE results with both spectrograms and the Adaptive layer.
 
 \subsection{Pretraining, Enhancing and Finetuning}
 
-Like in the second version of Deep Clustering \cite{DPCLV2}, we first train the SCE on spectrograms or outputs of the Adaptive front-end with a certain chunk size and then continue to train the network on a bigger chunk size in order to improve its performance. This method can be seen as \textit{finetuning} the network on longer chunk size. Furthermore, being more accurate on longer chunk will with high probabilty improve the performance of our model, indeed during the test phase audio mixtures are chunked with the size the network has been trained on, for small chunk size it is more likely to have a high percenatge of silent area for the speakers and thus a quite noisy sample with few information to produce a good separation, whereas for longer chunks more information to be able to distinguish them is available.
-Moreover, after the network has been fully trained on bigger chunks the enhance layer is added to SCE network in order to generate softer and better masks.And finally, since soft k-means is used we can finetune the whole architecture and see if this can lead to any further improvements.
+Like in the second version of Deep Clustering \cite{DPCLV2}, we first train the SCE on spectrograms or outputs of the Adaptive front-end with a certain chunk size and then continue to train the network on a bigger chunk size in order to improve its performance. This method can be seen as \textit{finetuning} the network on longer chunk size. Furthermore, being more accurate on longer chunk will with high probabilty improve the performance of our model, indeed during the test phase audio mixtures are chunked with the size the network has been trained on, for small chunk size it is more likely to have a high percentage of silent area for the speakers and thus a quite noisy sample with few information to produce a good separation, whereas for longer chunks more information is available to be able to distinguish them.
+Moreover, after the network has been fully trained on bigger chunks the enhancement layer, presented in \autoref{EEA}, is added to SCE network in order to generate softer and better masks. And finally, since soft k-means is used we can finetune the whole architecture and see if this can lead to any further improvements.
 
-We show in Sections \ref{ext}, \ref{enh} and \ref{finetuning} that these addings are indeed enhancing all methods in terms of SDR and SIR improvements.
+We show in subsections \ref{ext}, \ref{enh} and \ref{finetuning} that these addings are indeed enhancing all methods in terms of SDR and SIR improvements.
 
 
 \chapter{Experiments}
@@ -1367,28 +1391,33 @@ We show in Sections \ref{ext}, \ref{enh} and \ref{finetuning} that these addings
 
 The framework used for all our deep learning architecture is TensorFlow r1.9 \cite{TF} and the experiments were conducted using RAIDEN Computer System provided by RIKEN AIP. This system has nodes with NVIDIA DGX 100 composed of 8 Nvidia Tesla V100-SXM2-16GB of 15GB of RAM. Our experiments were computed on a single GPU but our implementation makes them runnable on multiple GPUs. 
 
-To evaluate our experiments in terms of Signal to Distortion Ratio (SDR) and Signal to Interference Ratio (SIR) improvements, we used the BSS\_EVAL toolbox \cite{BSS}. Since we are working on NVIDIA DGX 100, and that these later are shared among RAIDEN users GPU, using the BSS\_EVAL Python module on CPU can be  very slow when the CPU shared. Therefore, to speed-up the testing phase, we implemented the BSS\_EVAL toolbox with CuPy \cite{cupy} and TensorFlow r1.9 in order to run all the experiments fully on GPUs - note that this new implementation is only compatible with TensorFlow r1.9, which is the first version capable of handling \textit{complex128} numbers for the $FFT$ operation and therefore having good enough precision to deliver similar results as the original CPU-version module
+To evaluate our experiments in terms of Signal to Distortion Ratio (SDR) and Signal to Interference Ratio (SIR) improvements, we used the BSS\_EVAL toolbox \cite{BSS}. Since we are working on NVIDIA DGX 100, and that these later are shared among RAIDEN users GPU, using the BSS\_EVAL Python module on CPU can be very slow when the CPU are shared. Therefore, to speed-up the testing phase, we implemented the BSS\_EVAL toolbox with CuPy \cite{cupy} and TensorFlow r1.9 in order to run all the experiments fully on GPUs - note that this new implementation is only compatible with TensorFlow r1.9, which is the first version capable of handling \textit{complex128} numbers for the $FFT$ operation and therefore having good enough precision to deliver similar results as the original CPU-version module.
 
 \section{LibriSpeech ASR Corpus and optimization}
-For all the experiments conducted in our study we used the LibriSpeech ASR Corpus \cite{LIBRI}. From this dataset, we used the \textit{train-clean-100} set containing 100 hours of 125 women and 126 men speeches. This dataset was split in three parts: the training representing 80\%, the validation 10\% and the test 20\% set. Another set was created with \textit{test-other-clean} to evaluate our models on \textit{out-of-set} speaker mixtures. For computational speed up and memory savings we downsampled the audio signals from 16kHz to 8kHz.
-When spectrograms are used as input, we computed the Short Time Fourier spectral magnitudes for each mixture with a window size of 32 ms (256 samples), a hop size of 8 ms (64 samples) with the square root of the Hann as window. From these spectrograms were build the ideal binary masks $Y$ by evaluating the dominant speaker for each $(t,f)$ bin.
 
-In our implementation, we do not precompute the spectrogram magnitudes and store them like it is usually done. We directly use the raw audio files as inputs because our models have to be able to compare their results on the same audio files using the Adaptive layer or spectrogram magnitudes. To do so, we stored the audio signals in \textit{.tfrecords} files that are processed by the \textit{tf.data.Dataset} API. Using directly the TensorFlow format file and API for data importation enables the use of operations such as \textit{tf.data.map} allowing the manipulation of audio files on multiple processes and \textit{tf.data.prefetch} which is prefetching next batches on the CPU while the previous one are computed on the GPU.
-All these optimized operations for the input data generation leads to a significant speed-up for large batches of 256 elements. A good advantage of this method is that it can randomly generate many different mixtures with different chunk sizes, number of speakers and genders without to have to store the inputs on the hard disk - random states are set constant during the training phase in order to have reproducible results. But one drawback is that it is computing exactly the same inputs every epochs and therefore can be seen as quite time consuming.
- Furthermore, since the non-chunked raw data are stored, our implementation is capable to generate chunked mixtures of different size and therefore can generate. All our code can be found at \cite{github}.
+For all the experiments conducted in our study we used the LibriSpeech ASR Corpus \cite{LIBRI}. From this dataset, we used the \textit{train-clean-100} set containing 100 hours of 125 women and 126 men speeches. This dataset was split in three parts: the training set representing 80\%, the validation set 10\% and the test set 10\%. Another set was created with \textit{test-other-clean} to evaluate our models on out-of-set speaker mixtures (the results concerning this specific set are reported in \autoref{globalout}). For computational speed up and memory savings we downsampled the audio signals from 16kHz to 8kHz.
+When spectrograms are used as input, we use the Short Time Fourier spectral magnitudes for each mixture with a window size of 32 ms (256 samples), a hop size of 8 ms (64 samples) and the square root of the Hann as window. From these spectrograms were build the ideal binary masks $Y$ by evaluating the dominant speaker for each $(t,f)$ bin.
+
+In our implementation, we do not precompute the spectrogram magnitudes and store them like it is usually done. We directly use the raw audio files as inputs because our models have to be able to compare their results on the same audio files using the Adaptive layer or spectrogram magnitudes. To do so, we stored the audio signals in \textit{.tfrecords} files that are processed by the TensorFlow \textit{tf.data.Dataset} API. Using directly the TensorFlow file format and API for data importation enables the use of operations such as \textit{tf.data.map} allowing the manipulation of audio files on multiple processes and \textit{tf.data.prefetch} which is prefetching next batches on the CPU while the previous one are computed on the GPU.
+All these optimized operations for the input data generation leads to a significant speed-up for large batches of 256 elements for instance. A good advantage of this method is that it can randomly generate many different mixtures with different chunk sizes, number of speakers and genders without to have to store the inputs on the hard disk - random states are set constant during the training phase in order to have reproducible results. But one drawback is that it is computing exactly the same inputs every epochs and therefore can be seen as quite time consuming.
+ Furthermore, since the non-chunked raw data are stored in the .tfrecords files, our implementation is capable to generate chunked mixtures with different sizes and therefore be able to train on many different chunks size. 
+ 
+All our code can be found at \cite{github}.
 
 \chapter{Results}
 \label{res}
 
-In this chapter we present our results on the environment and dataset presented in \autoref{exp}.
+In this chapter, we present our results on the environment and dataset presented in \autoref{exp}.
 In the first section, using the LibriSpeech Corpus, we reproduce the results of the Deep Clustering and Source Constrastive Estimation methods. In the second section, we show our results using the Adaptive layer with these two methods: to do so we first analyze the \textit{pretraining} phase of the Adaptive layer for different hyperparameters and show some drawbacks encountered with this latter. In the third section we try all the contributions mentioned previously and observe the obtained improvements.
 
-For all the evaluations shown in this chapter, the models were evaluated on the chunk size they were trained on and K-means clustering algorithm was computed with 10 steps and 2 tries. In addition, in this study we focus on the \textbf{separation of 2 speakers mixtures} and train plus evaluate our models on 3 sets that are named \textbf{\textit{'m+m'}}, for a mixture of male speakers only, \textbf{\textit{'m+f'}} for a mixture of different genders only, and finally \textbf{\textit{'all'}} for a mixture of all possible gender combination. This latter set is closer to real-world conditions and is therefore the most relevant to evaluate our models in terms of separation accuracy.
+For all the evaluations shown in this chapter, the models were evaluated on the chunk size they were trained on and k-means clustering algorithm was computed with 10 steps and 2 tries. In addition, in this study we focus on the \textbf{separation of 2 speakers mixtures} and train plus evaluate our models on 3 different mixture sets that are named \textbf{\textit{'m+m'}}, for a mixture of male speakers only, \textbf{\textit{'m+f'}} for a mixture of different genders only, and finally \textbf{\textit{'all'}} for a mixture of all possible gender combination. This latter set is closer to real-world conditions and is therefore the most relevant to evaluate our models in terms of separation accuracy.
  
 \section{State of the art results reproduction}
 \label{sota}
 
-\textbf{Deep Clustering:} In Table \ref{table:DPCLreprod} we report our results for the reproduction of the Deep Clustering approach. We can see that for the DPCL++ \cite{DPCLV2} (equivalent to \textit{DPCL - finetuned (ours)}) approach we could reproduce the results and even get better results but we could not have the same for its first version DPCL \cite{DPCLV1} (equivalent to \textit{DPCL (ours)}). This might be due to some hyperparameters difference, implementation, training time and type of data.
+In this section we reproduce Deep CLustering and Source Contrastive Estimation methods with the LibriSpeech Corpus dataset.
+
+\textbf{Deep Clustering:} In Table \ref{table:DPCLreprod} we report our results for the reproduction of the Deep Clustering approach. We can see that for the DPCL++ \cite{DPCLV2} (equivalent to \textit{DPCL - finetuned (ours)}) approach we could reproduce the results and even get better results but we could not have the same results for its first version DPCL \cite{DPCLV1} (equivalent to \textit{DPCL (ours)}). This might be due to some hyperparameters difference, implementation, training time and type of data.
 
 
 \begin{table}[h!]
@@ -1403,50 +1432,50 @@ DPCL (ours) & 2.71 & 6.90 & 8.00 & 14.91 & 5.49 & 9.85
 \\ 
 \hline 
 \hline 
-DPCL - enh (ours) & 6.79 & 11.47 & 10.14 & 16.09 & 7.59 & 12.34 \\ 
-DPCL - ext (ours) & 3.21 & 7.20 & 10.43 & 17.97 & 4.74 & 9.28 \\ 
-DPCL - ext + enh (ours) & 7.92 & 13.47 & 12.38 & 19.18 & 9.08 & 14.38 \\ 
+DPCL enh (ours) & 6.79 & 11.47 & 10.14 & 16.09 & 7.59 & 12.34 \\ 
+DPCL 400 (ours) & 3.21 & 7.20 & 10.43 & 17.97 & 4.74 & 9.28 \\ 
+DPCL 400 enh (ours) & 7.92 & 13.47 & 12.38 & 19.18 & 9.08 & 14.38 \\ 
 \hline 
 \hline 
 DPCL++ \cite{DPCLV2} & 9.40 & x & 12.0 & x & 10.08 & x \\ 
 DPCL - finetuned (ours) &  8.93 & 14.69 & 13.35 & 20.59 & 10.01 & 15.58 \\ 
 \end{tabular}
-\caption[Deep Clustering results reproduction]{We reproduce the results of the first version of Deep Clustering, here DPCL (ours) and its second version DPCL++, here DPCL - finetuned (ours). The three intermediate lines correspond to the step taken to arrive from DPCL (ours) to our reproduction of the second version of Deep Clustering (DPCL++, equivalent to an enhanced, extended and finetuned DPCL). As we can see, for DPCL++ results reproduction we could even get better results than the original paper.}
+\caption[Deep Clustering results reproduction]{Results reproduction of the first version of Deep Clustering, here DPCL (ours) and its second version DPCL++, here DPCL - finetuned (ours). The three intermediate lines correspond to the step taken to arrive from DPCL (ours) to our reproduction of the second version of Deep Clustering (DPCL++: equivalent to an enhanced, extended and finetuned DPCL). As we can see, for DPCL++ results reproduction we could even get better results than the original paper.}
 \label{table:DPCLreprod}
 \end{table}
 
 From now on, we detail the process we followed from reproducing DPCL \cite{DPCLV1} to DPCL++ \cite{DPCLV2} results.
-To reproduce the DPCL results we used an architecture consisting in 4 BLSTM layers of 600 units (corresponding to 300 units in each LSTM cell) with an embedded space of size $E=40$ - this size is set as constant for all the following experiments. This network is one BLSTM layer larger than the one used in \cite{DPCLV1}, but we observe in Table \ref{table:DPCLV1} that even using a larger network does not lead to the same results. In addition, instead of using a fully connected network as the final layer of our network, we replaced it by a one dimensional convolutional network, this is often leading to the same results and reduces the number of weights that can be high if the BLSTM units number or the embedded space size increases. Concerning the optimization, we use the RMSProp optimizer (\ref{RMS}) with a learning rate of $1e^{-3}$ that is halved every 50 epochs. We compare the SDR and SIR improvements using a regular hard version of K-means with and without silence and the soft version with different stiffness $\beta$ and a threshold of $20dB$. As regularization, like in DPCL++ \cite{DPCLV2}, in each BLSTM is added recurrent dropout and a gradient normalization of $200$ is used during the optimization phase.
+To reproduce the DPCL results we used an architecture consisting in 4 BLSTM layers of 600 units (corresponding to 300 units in each LSTM cell) with an embedded space of size $E=40$ - this size is set as constant for all the following experiments. This network is one BLSTM layer larger than the one used in \cite{DPCLV1}, but we observe in Table \ref{table:DPCLV1} that even using a larger network does not lead to the same results. In addition, instead of using a fully connected network as the final layer of our network, we replaced it by a one dimensional convolutional network, this is often leading to the same results and reduces the number of weights that can be high if the BLSTM units number or the embedded space size increases. Concerning the optimization, we use the RMSProp optimizer (\ref{RMS}) with a learning rate of $1e^{-3}$ that is halved every 50 epochs. We compare the SDR and SIR improvements using a regular hard version of k-means with and without silence and the soft version with different stiffness $\beta$ and a silence threshold of $20$dB. As regularization, like in DPCL++ \cite{DPCLV2}, in each BLSTM is added recurrent dropout and a gradient normalization of $200$ is used during the optimization phase.
 These experiments are computed during 100 epochs using early stopping if the validation set accuracy does not decrease after 5 evaluations.
-In most experiments results, it can be observed that with higher values of $\beta$ (harder stiffness) for the soft K-means algorithm, the SIR improvement is increasing, this is explain by the fact that the separation is \textit{stronger} (close to binary masks), there is less remaining of other sources in the separated one, and therefore less interferences, what SIR is actually measuring.
+In most experiments results, it can be observed that with higher values of $\beta$ (harder stiffness) for the soft k-means algorithm, the SIR improvement is increasing, this is explain by the fact that the separation is \textit{stronger} (close to binary masks), there is less remaining of other sources in the separated one, and therefore less interferences, what SIR is actually measuring.
 
 \begin{table}[h]
 \centering
 \begin{tabular}{l|c|c|c|c|c|c}
-DPCL chunk 100 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
+DPCL 100 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
 \hline 
 k-means $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline 
-hard $dB$ & 2.85 & 8.71 & 8.03 & 14.80 & 5.30 & 11.40 \\ 
-hard - 20 $dB$ & 3.58 & 10.78 & 8.00 & 14.91 & \textit{5.49} & \textit{12.39} \\ 
+hard & 2.85 & 8.71 & 8.03 & 14.80 & 5.30 & 11.40 \\ 
+hard - 20 dB & 3.58 & 10.78 & 8.00 & 14.91 & \textit{5.49} & \textit{12.39} \\ 
 \hline 
 \hline 
-5 - 20 $dB$ & 1.58 & 2.86 & 6.22 & 9.26 & 2.97 & 4.49 \\ 
-10 - 20 $dB$ &  \cellcolor{green}\textbf{2.71} & \cellcolor{green}6.90 & \cellcolor{green}\textbf{8.42} &\cellcolor{green} 14.49 & \cellcolor{green}\textbf{5.12} & \cellcolor{green}9.85 \\ 
-15 - 20 $dB$ & 1.82 & 7.23 & 8.34 & 14.88 & 4.51 & \textbf{10.15} \\ 
-20 - 20 $dB$ & 1.60 & 7.25 & 8.22 & \textbf{14.93} & 4.25 & 10.11 \\ 
-25 - 20 $dB$ & 1.53 & \textbf{7.27} & 8.13 & 14.92 & 4.13 & 10.08 \\ 
+5 - 20 dB & 1.58 & 2.86 & 6.22 & 9.26 & 2.97 & 4.49 \\ 
+10 - 20 dB &  \cellcolor{green}\textbf{2.71} & \cellcolor{green}6.90 & \cellcolor{green}\textbf{8.42} &\cellcolor{green} 14.49 & \cellcolor{green}\textbf{5.12} & \cellcolor{green}9.85 \\ 
+15 - 20 dB & 1.82 & 7.23 & 8.34 & 14.88 & 4.51 & \textbf{10.15} \\ 
+20 - 20 dB & 1.60 & 7.25 & 8.22 & \textbf{14.93} & 4.25 & 10.11 \\ 
+25 - 20 dB & 1.53 & \textbf{7.27} & 8.13 & 14.92 & 4.13 & 10.08 \\ 
 \end{tabular}
-\caption[Evaluation of a Deep Clustering trained with chunks size of 100 frames]{Evaluation of a Deep Clustering architecture (4x600) trained with mixture chunks size of 100 frames. The models are evaluated with different hyperparameters for K-means and different type of mixture with 2 speakers (males and males 'm+m', females and males exclusively 'm+f' and all kind of mixtures 'all') - green cells corresponds the parameters used for the next phase and are the one leading to the best SDR improvements}
+\caption[Evaluation of a Deep Clustering trained with chunks size of 100 frames]{Evaluation of a Deep Clustering architecture (4x600) trained with mixture chunks size of 100 frames. The models are evaluated with different hyperparameters for k-means and different type of mixture with 2 speakers (males and males 'm+m', females and males exclusively 'm+f' and all kind of mixtures 'all') - green cells corresponds the parameters used for the next phase and are the one leading to the best SDR improvements}
 \label{table:DPCLV1}
 \end{table}
 
-Then, we add the enhancement layer presented in \autoref{enh} in order to produce softer masks and, in doing so, improving the accuracy of our model. In that regard, we use the previous model trained on chunks of size 100 and add the enhancement layer consisting in 3 BLSTM layers of 600 units each. We test the performance of ours models with different optimizers and recurrent dropout values, the results are reported in Table \ref{table:DPCL100enh}. The stiffness used for the soft K-means corresponds to the green cells in \ref{table:DPCLV1}, in this study we always select the hyperparameters leading the best SDR improvement, but an interesting extension would be to select the best SIR improvement to analyze if focusing on SIR can have a bigger impact on the SDR than the contrary.
+Then, we add the enhancement layer presented in \autoref{enh} in order to produce softer masks and, in doing so, improving the accuracy of our model. In that regard, we use the previous model trained on chunks of size 100 and add the enhancement layer consisting in 3 BLSTM layers of 600 units each. We test the performance of ours models with different optimizers and recurrent dropout values, the results are reported in Table \ref{table:DPCL100enh}. The stiffness used for the soft k-means corresponds to the green cells in \ref{table:DPCLV1}, in this study we always select the hyperparameters leading the best SDR improvement, but an interesting extension would be to select the best SIR improvement to analyze if focusing on SIR can have a bigger impact on the SDR than the contrary.
 
 \begin{table}[h]
 \centering
 \begin{tabular}{l|c|c|c|c|c|c|c}
-\multicolumn{2}{c|}{DPCL chunk 100 - enhance} & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
+\multicolumn{2}{c|}{DPCL 100 - enhance} & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
 \hline 
 optimizer - $\alpha$ & dropout & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline 
@@ -1455,40 +1484,40 @@ RMSProp $1e^{-3}$ & 0.2 & 6.20 & 10.12 & div & div & 6.91 & 10.62 \\
 Adam $1e^{-3}$ & 0.0 & 6.71 & 11.45 & 10.12 & 16.00 & \textbf{7.59} & \textbf{12.34} \\ 
 Adam $1e^{-3}$ & 0.2 &\textbf{6.79}& \textbf{11.47} & 10.12 & \textbf{16.22} & 7.29 & 11.59 \\ 
 \end{tabular}
-\caption[Enhancement of Deep Clustering trained with 100 frames chunks size]{Enhancement of the previously trained Deep Clustering models with chunk size of 100 frames - the enhance layer is evaluated with different optimizers and recurrent dropout values}
+\caption[Enhancement of Deep Clustering trained with 100 frames chunks size]{Enhancement of the previously trained Deep Clustering models with chunks size of 100 frames - the enhance layer is evaluated with different optimizers and recurrent dropout values}
 \label{table:DPCL100enh}
 \end{table}
 
-Here, we applied the enhancement layer before finetuning our model with bigger chunks to see the difference with applying bigger chunks and then the enhancement layer. 
-Then, we follow \cite{DPCLV2} and finetune our network of Table \ref{table:DPCLV1} with chunks of 400 frames during 40000 steps in average. We can observe in Table \ref{table:DPCL400} that, for a mixture of different gender (m+f), training on larger chunks is already leading to better SDR and SIR improvements than the enhanced on trained on chunks of size 100. But, surprisingly, for the overall mixture set the results slightly decreased in terms of SDR improvements.
+Here, we applied the enhancement layer before finetuning our model with longer chunks to see the difference with applying bigger chunks and then the enhancement layer. 
+Then, we follow \cite{DPCLV2} and finetune our network of Table \ref{table:DPCLV1} with chunks of 400 frames during 40000 steps in average. We can observe in Table \ref{table:DPCL400} that, for a mixture of different genders (m+f), training on larger chunks is already leading to better SDR and SIR improvements than the enhanced one trained on chunks of size 100. But, surprisingly, for the overall mixture set the results slightly decreased in terms of SDR improvements.
 
 \begin{table}[h]
 \centering
 \begin{tabular}{l|c|c|c|c|c|c}
-DPCL chunk 400 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
+DPCL 400 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
 \hline 
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline 
-hard - 0 $dB$ & 3.17 & 10.23  & 9.86 & 18.87 & 4.91 & 12.25 \\ 
-hard - 20 $dB$ & \textit{4.52} & \textit{13.06} & 9.64 & 18.67 & 5.53 & 14.05 \\ 
+hard & 3.17 & 10.23  & 9.86 & 18.87 & 4.91 & 12.25 \\ 
+hard - 20 dB & \textit{4.52} & \textit{13.06} & 9.64 & 18.67 & 5.53 & 14.05 \\ 
 \hline 
 \hline 
-5 - 20 $dB$ & 1.71 & 2.19 & 6.71 & 8.75 & 2.28 & 2.87 \\ 
-10 - 20 $dB$ & \cellcolor{green}\textbf{3.21} & \cellcolor{green}7.20 & \cellcolor{green}\textbf{10.43} & \cellcolor{green}17.97 & \cellcolor{green}\textbf{4.74} & \cellcolor{green}9.28 \\ 
-15 - 20 $dB$ & 1.67 & 7.87 & 10.22 & 18.64 & 3.64 & 10.14 \\ 
-20 - 20 $dB$ & 1.19 & 7.92 & 10.02 & \textbf{18.66} & 3.21 & 10.22 \\ 
-25 - 20 $dB$ & 1.09 & \textbf{7.99} & 9.89 & 18.63 & 3.04 & \textbf{10.27} \\ 
+5 - 20 dB & 1.71 & 2.19 & 6.71 & 8.75 & 2.28 & 2.87 \\ 
+10 - 20 dB & \cellcolor{green}\textbf{3.21} & \cellcolor{green}7.20 & \cellcolor{green}\textbf{10.43} & \cellcolor{green}17.97 & \cellcolor{green}\textbf{4.74} & \cellcolor{green}9.28 \\ 
+15 - 20 dB & 1.67 & 7.87 & 10.22 & 18.64 & 3.64 & 10.14 \\ 
+20 - 20 dB & 1.19 & 7.92 & 10.02 & \textbf{18.66} & 3.21 & 10.22 \\ 
+25 - 20 dB & 1.09 & \textbf{7.99} & 9.89 & 18.63 & 3.04 & \textbf{10.27} \\ 
 \end{tabular}
-\caption[Finetuning of Deep Clustering models with chunks of size 400]{Finetuning the previous DPCL chunk 100 models using chunks of size 400 frames and evaluating on different parameters for K-means}
+\caption[Finetuning of Deep Clustering models with chunks of size 400]{Finetuning the previous DPCL 100 models using chunks of size 400 frames and evaluating on different parameters for the soft k-means algorithm}
 \label{table:DPCL400}
 \end{table}
 
-As previously, we add the enhancement layer to the models from \ref{table:DPCL400} and train the latter on the best SDR improvement reached with the soft K-means algorithm - here $\beta = 10$ and a silence threshold of $20dB$ is used for all sets. 
+As previously, we add the enhancement layer to the models from \ref{table:DPCL400} and train the latter on the best SDR improvement reached with the soft k-means algorithm - here $\beta = 10$ and a silence threshold of $20dB$ is used for all sets. 
 
 \begin{table}[h]
 \centering
 \begin{tabular}{l|c|c|c|c|c|c|c}
-\multicolumn{2}{c|}{DPCL chunk 400 - enhance} & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
+\multicolumn{2}{c|}{DPCL 400 enhance} & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
 \hline 
 optimizer - $\alpha$ & dropout & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline 
@@ -1497,12 +1526,11 @@ RMSProp $1e^{-3}$ & 0.2 & 7.63 & 12.81 & 12.16 & 19.18 & 8.78 & 14.14 \\
 Adam $1e^{-3}$ & 0.0 & 7.44 & 12.79 & 12.28 & 19.18 & \textbf{9.08} & 14.38 \\
 Adam $1e^{-3}$ & 0.2 & 7.83 & 13.30 & 12.19 & \textbf{19.36} & 9.02 & \textbf{14.59}\\ 
 \end{tabular}
-\captionsetup{justification=centering}
-\caption[Enhancement of Deep Clustering trained with 400 frames chunks size]{Enhancing the Deep Clustering models finetuned with chunk of size 400 using Adam or RMSProp optimizer and different recurrent dropout values.}
+c\caption[Enhancement of Deep Clustering trained with 400 frames chunks size]{Evaluation of the enhanced Deep Clustering models finetuned with chunk of size 400 using Adam or RMSProp optimizer and different recurrent dropout values.}
 \label{table:DPCL400enh}
 \end{table}
 
-For the final phase, we finetune the whole network with the Deep Clustering part plus the unrolled K-means steps and the enhancement layer. In the DPCL++ paper, the loss function used for the end-to-end finetuning and the finetuned parts are not mentioned. In our case, we use the $L_2$ loss function directly on the fully reconstructed signals, and report our results in Table \ref{table:DPCL400fine}. Concerning the $L_2$ loss, we apply the masks produced by the enhancement layer on the spectrogram mixture and reconstruct each separated signals using the ISTFT on the masked spectrogram magnitude and the mixture phase, then the $L_2$ distance between the reconstructed signals and the original one is computed. For questions of memory, the finetuning phase was computed using chunks size of 10240 frames, a batch size of 64 mixture samples and with the RMSProp optimizer with a learning rate of $1e^{-4}$ during 10 epochs.
+For the final phase, we finetune the whole network with the Deep Clustering part plus the unrolled k-means steps and the enhancement layer. In the DPCL++ paper, the loss function used for the end-to-end finetuning and the finetuned parts are not mentioned. In our case, we use the $L_2$ loss function directly on the fully reconstructed signals, and report our results in Table \ref{table:DPCL400fine}. Concerning the $L_2$ loss, we apply the masks produced by the enhancement layer on the spectrogram mixture and reconstruct each separated signals using the inverse STFT on the masked spectrogram magnitude and the mixture phase, then the $L_2$ distance between the reconstructed signals and the original one is computed. For questions of memory, the finetuning phase was computed using chunks size of 10240 frames, a batch size of 64 mixture samples and with the RMSProp optimizer with a learning rate of $1e^{-4}$ during 10 epochs.
 
 \begin{table}[h]
 \centering
@@ -1514,14 +1542,14 @@ DPCL finetuned & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicol
 RMS Prop - $1e^{-4}$  & 8.93 & 14.69 & 13.35 & 20.59 & 10.01 & 15.58 \\ 
 
 \end{tabular}
-\caption{Evaluation of the finetuned Deep Clustering network.}
+\caption{Evaluation of the finetuned Deep Clustering models.}
 \label{table:DPCL400fine}
 \end{table}
 
 
-\textbf{Source Contrastive Estimation:} Secondly, we reproduce the results of the SCE \cite{SCE} method using the same architecture consisting in 3 BLSTM layers of 600 units each. Before being fed into the network, the square root function is applied on the magnitude spectrograms and these latter are normalized between 0 and 1. In the original paper, the authors mentioned that not normalizing the embedded vectors outputted by the network is leading to better results than applying a $L_2$ normalization but in our case not normalizing led to very bad results with almost no SDR improvement. We train the SCE network with chunks size of 100 frames, a batch size of 256 samples, using the RMSProp optimizer with a learning rate of $1e^{-3}$ during 100 epochs.
+\textbf{Source Contrastive Estimation:} Secondly, we reproduce the results of the SCE \cite{SCE} method using the same architecture consisting in 3 BLSTM layers of 600 units each. Before being fed into the network, the square root function is applied on the spectrograms magnitude and these latter are normalized between 0 and 1. In the original paper, the authors mentioned that not normalizing the embedded vectors outputted by the network is leading to better results than applying a $L_2$ normalization but in our case non-normalized embeddings led to very bad results with almost no SDR improvement. We train the SCE network with chunks size of 100 frames, a batch size of 256 samples, using the RMSProp optimizer with a learning rate of $1e^{-3}$ during 100 epochs. Like in the original paper, hard k-means algorithm is used to separate the embedded vectors.
 
-We report our results in \autoref{table:SCErepro}: as observed, we could not reach the results presented in \cite{SCE} but we will see that the addressed contributions in \autoref{contrib} are leading to better results for a mixture of 2 speakers.
+We report our results in \autoref{table:SCErepro}: as observed, we could not reach the results presented in \cite{SCE} but we will see that the addressed contributions in \autoref{contrib} are leading to better results.
 
 \begin{table}[ht]
 \centering
@@ -1539,10 +1567,11 @@ SCE (ours) & 3.72 & 9.75 & 7.38 & 14.10 & 5.89 & 12.23 \\
 
 \section{Adaptive Layer pretraining}
 \label{pre}
+
 In this section we analyze the pretraining phase of the Adaptive layer presented in \autoref{adapt}. To do so, we examine the reconstruction performances for different values for the defined hyperparameters.
 
 Firstly, concerning the network architecture, the first one-dimensional convolutional layer was set to have a stride of 1 with zero padding and we evaluate the performance for different size of windows and number of filters. The max-pooling layer is set to have the same stride and hop not to have overlapped information and is evaluated with different sizes. 
-Secondly, the RMSProp optimizer was used with a learning rate of $0.001$ and was halved every 50 epochs. The overlapping rate $\lambda$ was set constant equals to $100$, the sparsity rate $\beta$ was set to $0.01$ with a sparsity constraint of $0.01$. The Adaptive layer is trained during 150 epochs with chunks size of 20480 frames.
+Secondly, the RMSProp optimizer was used with a learning rate of $1e^{-3}$ and was halved every 50 epochs. The overlapping rate $\alpha$ was set constant equals to $100$, the sparsity rate $\beta$ was set to $0.01$ with a sparsity constraint of $0.01$. The Adaptive layer is trained during 150 epochs with audio chunks of 20480 frames.
 Concerning the dataset, we used a mixture of 2 speakers with all possible genders combination (male/male, female/female and male/female) to cover as many frequency combinations as possible. Furthermore, the data given in input of the front-end were not normalized and given as raw. 
 
 \begin{table}[ht]
@@ -1563,14 +1592,14 @@ Concerning the dataset, we used a mixture of 2 speakers with all possible gender
 \end{table}
 	
 As we can see in \autoref{table:pretraining}, where different hyperparameters for the Adaptive layer are tried, the best result obtained is for a window of size $1024$ and a maxpooling stride and hop of $128$. Concerning the number of filters, using $512$ filters led to better results but we did not use this pretrained model for our next experiments because having a large number of filters can lead to worse separation performance than using $256$ filters. Indeed, we are not reporting the results here, but we compared the architectures with $512$ filters and the one with $256$ filters on the Deep Clustering method and obtained better separation using the latter.
-For the rest of this study, \textbf{we use the pretrained model with $256$ filters and a window size of $1024$ as our Adaptive layer} for the Deep Clustering and Source Constrastive Estimation methods.
+For the rest of this study, \textbf{we use the pretrained model with $256$ filters and a window size of $1024$ as the Adaptive layer} for the Deep Clustering and Source Constrastive Estimation methods.
 In the following paragraphes, we analyze this specific selected model:
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centering
 \begin{subfigure}[b]{0.45\textwidth}
 \includegraphics[width=\textwidth]{purple_front_window}
-\caption{Front-end context window $|\omega|$}
+\caption{Front-end window $|\omega|$}
 \label{fig:win} 
 \end{subfigure}
 ~
@@ -1596,39 +1625,43 @@ In the following paragraphes, we analyze this specific selected model:
 \end{subfigure}
 
 \captionsetup{justification=centering}
-\caption[Adaptive layer pretraining results]{Pretraining resuPretraining resultslts. In \autoref{fig:bw}, \autoref{fig:b}, \autoref{fig:bfft} are plotted 16 of the 256 learnt filters}
+\caption[Adaptive layer pretraining results]{Analysis of the learnt window and filters of the selected pretrained Adaptive layer for our next experiments. In \autoref{fig:bw}, \autoref{fig:b} and \autoref{fig:bfft} are plotted 16 of the 256 learnt filters.}
 \label{fig:pretrainingadapt} 
 
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=.7\textwidth]{sort2front_purple}
-\captionsetup{justification=centering}
-\caption{Sorting of the 256 filters learnt of the front-end Adaptive according to their dominant frequency}
+\caption{Sorting of the 256 filters learnt of the front-end Adaptive according to their dominant frequency computed with the FFT operation}
 \label{fig:fftsort} 
 \end{figure}
 
-
-First, in \autoref{fig:win} we can see that the learnt context window contains some noise but follows the shape of the usually used windows that are the Hann or Hamming windows.
+First, in \autoref{fig:win} we can see that the learnt window contains some noise but follows the shape of the usually used windows that are the Hann or Hamming windows.
 
 Secondly, in Figures \ref{fig:bw}, \ref{fig:b} and \ref{fig:bfft}, we observe that the bases/filters learnt by the Adaptive layer are extracting frequencies especially for the multi-speaker separation problem. In \autoref{fig:fftsort}, we sort the bases according to the dominant frequency in each basis and observe that the filters are more focused on low frequencies.
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\textwidth]{comparison_log}
-\caption[Comparison of the Adaptive layer latent representation and STFT operation on a mixture of 2 speakers and on the non mixed original speeches]{Comparison of the Adaptive layer latent representation and STFT operation on a mixture of 2 speakers and on the non mixed original speeches. On the left side are represented, from top to  bottom, the latent representations from the Adaptive layer for the mixture, the first and for the second speaker. On the right side and in the same order are represented the STFT of these latter. For the Adaptive layer representation, the plotted images are the front-end sorted outputs according to \autoref{fig:fftsort}.}
+\caption[Comparison of the Adaptive layer latent representation and STFT operation on a mixture of 2 speakers and on the non-mixed original speeches]{Comparison of the Adaptive layer latent representation and STFT operation on a mixture of 2 speakers and on the non-mixed original speeches. On the left side are represented, from top to  bottom, the latent representations from the Adaptive layer for the mixture, for the first and for the second speaker. On the right side and in the same order is represented the STFT of these latter. For the Adaptive layer representation, the plotted images are the front-end sorted outputs according to \autoref{fig:fftsort}.}
 \label{fig:comparison} 
 \end{figure}
 
-Thirdly, in \autoref{fig:comparison}, we compare the Adaptive layer latent representation with the STFT of the mixture of 2 speakers and their original signals. We can observe that the adaptive layer produces a more compact repsentation than the STFT due to the $128$ maxpooling stride and hop. Furthermore, the sparsity of the STFT and Adaptive layer for the original signals appears to be quite the same but the biggest difference lies in the mixture representation where the Adaptive layer is significantly less noisy and way sparser than the STFT representation.
+Thirdly, in \autoref{fig:comparison}, we compare the Adaptive layer latent representation with the STFT of the mixture of 2 speakers and their original signals. We can observe that the adaptive layer produces a more compact representation than the STFT due to the $128$ maxpooling stride and hop. Furthermore, the sparsity of the STFT and Adaptive layer for the original signals appears to be quite the same but the biggest difference lies in the mixture representation where the Adaptive layer is significantly less noisy and way sparser than the STFT representation.
 
 %Since the maxpooling layer is leading to reconstruction problems, we as well tried to delete this layer and the unpooling one, and instead of using a stride of 1 from the one dimensional convolutional layer we used larger size of hop (like it is actually done in the Short Time Fourier Transform). We used the same parameters for the overlapping and the sparsity constraint. But, we tried to apply these pretrainied autoencoders to SCE and Deep Clustering, and we couldn't reach good results. This was mainly due to the bas sparsity of this representation, indeed, as it can be observed in Figure [CITE], the bases learnt by the autoencoder are very noisy and therefore do not extract one specific information. Furthermore, not using the non negativity constraint was leading to very contrasted latent representation in terms of sign. The problem of having highly negative and positive representations is when, for instance, two spectrograms are added some bins will see their bins changing sign and applying masks will not work on such cases.
 
-For now, one significant drawback with the Adaptive Layer is its incapacity to correctly reconstruct signal of more than 2 speakers mixture. For instance, for a mixture of 3 speakers the Adaptive layer has a SDR improvement of \textbf{7.42} dB. This layer is actually not fully linear, indeed for a mixture of 2 speakers the max-pooling layer does not have a huge effect on the sparse representation computed but for more speakers it is more likely that the maximum values of the added mixtures have different positions.
+For now, one significant drawback with the Adaptive Layer is its incapacity to correctly reconstruct signal of more than 2 speakers mixture. For instance, for a mixture of 3 speakers the selected Adaptive layer has a SDR improvement of \textbf{7.42} dB. This layer is actually not fully linear, indeed for a mixture of 2 speakers the max-pooling layer does not have a huge effect on the sparse representation computed but for more speakers it is more likely that the maximum values of the added mixtures have different positions.
 
 \section{Adaptive layer with Deep Clustering}
 \label{DPCLADAPT}
+
+In this section, we analyze the performances of using the Adaptive layer presented in \autoref{adapt} instead of spectrogram magnitudes as inputs.
+To do so, we first only plug the front-end of the Adaptive layer to the Deep Clustering network. The outputs of the front-end layer are normalized with an unit mean and zero variance, 
+and we do not apply any functions like the absolute value or logarithm.
+The audio chunk size for the Adaptive front-end is set to 10240 ($\approx$ 1.30 seconds). 
+As we can see in the Table \ref{table:AdaptDPCL100}, using the adaptive layer instead of spectrogram is significantly leading to better SDR and SIR improvements for the training phase.
 
 
 \begin{table}[h!]
@@ -1639,28 +1672,24 @@ Adaptive DPCL & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolu
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline 
 hard & 6.36 & 12.66 & 10.08 & 17.12 & 7.69 & 14.11 \\ 
-hard - 20 $dB$ & 6.58 & 13.23 & 10.07 & \textbf{17.20} & 7.68 & \textbf{14.20} \\ 
+hard - 20 dB & 6.58 & 13.23 & 10.07 & \textbf{17.20} & 7.68 & \textbf{14.20} \\ 
 \hline 
 \hline 
-5 - 20 $dB$ & 5.92 & 9.43 & 9.71 & 14.87 & 6.81 & 10.19 \\ 
-10 - 20 $dB$ & \textbf{6.70} & 12.45 & \textbf{10.26} & 17.05 & \textbf{7.84} & 13.64 \\ 
-15 - 20 $dB$ & 6.57 & 12.71 & 10.17 & 17.09 & 7.54 & 13.82 \\ 
-20 - 20 $dB$ & 6.47 & 12.78 & 10.09 & 17.06 & 7.37 & 13.79 \\ 
-25 - 20 $dB$ & 6.41 & \textbf{12.81} & 10.02 & 17.01 & 7.28 & 13.76 \\ 
+5 - 20 dB & 5.92 & 9.43 & 9.71 & 14.87 & 6.81 & 10.19 \\ 
+10 - 20 dB & \textbf{6.70} & 12.45 & \textbf{10.26} & 17.05 & \textbf{7.84} & 13.64 \\ 
+15 - 20 dB & 6.57 & 12.71 & 10.17 & 17.09 & 7.54 & 13.82 \\ 
+20 - 20 dB & 6.47 & 12.78 & 10.09 & 17.06 & 7.37 & 13.79 \\ 
+25 - 20 dB & 6.41 & \textbf{12.81} & 10.02 & 17.01 & 7.28 & 13.76 \\ 
 \hline 
 \hline 
 DPCL 100 & 2.71 & 6.90 & 8.42 & 14.49 & 5.12 & 9.85 \\ 
 \end{tabular}
-\caption[Evaluation of the Deep Clustering approach using the Adaptive layer with audio chunks size of 10240 frames]{Evaluation of the Deep Clustering method using the Adaptive layer as input with audio chunk ssze of 10240 for different parameters of the soft and hard k-means - we compare these results to the one obtained using spectrograms, corresponding to the last row and see that using the Adaptive layer is leading to significantly better results.}
+\caption[Evaluation of the Deep Clustering approach using the Adaptive layer with audio chunks size of 10240 frames]{Evaluation of the Deep Clustering method using the Adaptive layer as input with audio chunks size of 10240 for different parameters of the soft and hard k-means - we compare these results to the one obtained using spectrograms, corresponding to the last row and see that using the Adaptive layer is leading to significantly better results.}
 \label{table:AdaptDPCL100}
 \end{table}
 
 
-In this section, we analyze the performances of using the Adaptive layer presented in \autoref{adapt} instead of spectrogram magnitudes as inputs.
-To do so, we first only plug the front-end of the Adaptive layer to the Deep Clustering network. The outputs of the front-end layer are normalized with an unit mean and zero variance, 
-but we do not apply any functions like the absolute value or logarithm.
-The input chunk size for the Adaptive front-end is set to 10240 ($\approx$ 1.30 seconds). 
-As we can see in the Table \ref{table:AdaptDPCL100}, using the adaptive layer instead of spectrogram is significantly leading to better SDR and SIR improvements for the training phase.
+Then, in the same way, we finetune the previously trained models with longer audio chunks of size 30720 ($\approx$ 4 seconds), and we report our results in the Table \ref{table:AdaptDPCLext}. In this case, we can see that the gap between the previous model and the finetuned one is not as substantial as it is with using spectrograms. For the male and female (m+f) mixture this can be explained by the reconstruction threshold of the adaptive layer.
 
 \begin{table}[h!]
 \centering
@@ -1669,23 +1698,24 @@ Adaptive DPCL extended & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \
 \hline 
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline 
-hard - 0 $dB$ & 7.79 & 15.70 & 10.80 & 19.73 & 8.26 & 16.27 \\  
-hard - 20 $dB$ & 7.58 & 15.78 & 10.68 & 19.65 & 8.39 & 16.85 \\ 
+hard & 7.79 & 15.70 & 10.80 & 19.73 & 8.26 & 16.27 \\  
+hard - 20 dB & 7.58 & 15.78 & 10.68 & 19.65 & 8.39 & 16.85 \\ 
 \hline 
 \hline 
-5 - 20 $dB$ & 7.62 & 12.40 & 10.40 & 16.45 & 7.57 & 11.60 \\ 
-10 - 20 $dB$ & \cellcolor{green}\textbf{8.05} & \cellcolor{green}15.41 & \cellcolor{green}\textbf{10.97} & \cellcolor{green}19.56 & \cellcolor{green}\textbf{8.50} & \cellcolor{green}15.79 \\ 
-15 - 20 $dB$ & 7.91 & 15.59 & 10.86 & 19.65 & 8.33 & 16.09 \\ 
-20 - 20 $dB$ & 7.80 & \textbf{15.60} & 10.75 & 19.60 & 8.21 & 16.17 \\ 
+5 - 20 dB & 7.62 & 12.40 & 10.40 & 16.45 & 7.57 & 11.60 \\ 
+10 - 20 dB & \cellcolor{green}\textbf{8.05} & \cellcolor{green}15.41 & \cellcolor{green}\textbf{10.97} & \cellcolor{green}19.56 & \cellcolor{green}\textbf{8.50} & \cellcolor{green}15.79 \\ 
+15 - 20 dB & 7.91 & 15.59 & 10.86 & 19.65 & 8.33 & 16.09 \\ 
+20 - 20 dB & 7.80 & \textbf{15.60} & 10.75 & 19.60 & 8.21 & 16.17 \\ 
 \hline 
 \hline 
 DPCL 400 & 3.21 & 7.20 & 10.43 & 17.97 & 4.74 & 9.28 \\ 
 \end{tabular}
-\caption[Evaluation of the finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer]{Evaluation of the finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer for different parameters for the soft K-means algorithm - we compare these results with the one obtained using spectrograms (last row) }
+\caption[Evaluation of the finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer]{Evaluation of the finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer for different parameters for the soft k-means algorithm - we compare these results with the one obtained using spectrograms.}
 \label{table:AdaptDPCLext}
 \end{table}
 
-Then, in the same way, we finetune the previously trained models with longer audio chunks of size 30720 ($\approx$ 4 seconds), and we report our results in the Table \ref{table:AdaptDPCLext}. In this case, we can see that the gap between the previous model and the finetuned one is not as substantial as it is with using spectrograms. For the male and female (m+f) mixture this can be explained by the reconstruction threshold of the adaptive layer.
+
+Thirdly, the enhancement layer is added to the best finetuned models with longer chunks (corresponding to a softness $\beta=10$) and is trained the same way as presented in \autoref{sota}. The results using different optimizers and learning rates are reported in \autoref{table:AdaptDPCLext}.
 
 \begin{table}[h]
 \centering
@@ -1703,11 +1733,13 @@ Adam $1e^{-3}$ & 0.2 & 7.55 & \textbf{15.67} & 10.11 & \textbf{18.89} & 7.76 & \
 \multicolumn{2}{c|}{DPCL 400 + enh}
  & 7.92 & 13.47 & \textbf{12.38} & \textbf{19.18} & 9.08 & 14.38 \\ 
 \end{tabular}
-\caption[Evaluation of the enhanced and finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer]{Evaluation of the enhanced and finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer for different optimizers and dropout values - these results are compared to the one using spectrograms (last row). We observe that using the RMSProp optimizer with a learning rate of $1e^{-3}$ leads to better results}
+\caption[Evaluation of the enhanced and finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer]{Evaluation of the enhanced and finetuned DPCL method with audio chunks of size 30720 using the Adaptive layer for different optimizers and dropout values - these results are compared to the one using spectrograms. We observe that using the RMSProp optimizer with a learning rate of $1e^{-3}$ leads to better results.}
 \label{table:AdaptDPCLext}
 \end{table}
 
-Thirdly, the enhancement layer is added to the best finetuned models with longer chunks (corresponding to a softness $\beta=10$) and is trained the same way as presented in \autoref{sota}. The results using different optimizers and learning rates are reported in \autoref{table:AdaptDPCLext}.
+
+Finally, the back-end layer is added in output and the network is finetuned considering two cases where: the whole network is finetuned or only the Deep Clustering and the enhancement layers are finetuned. For reasons of memory limitation, during the finetuning phase, we use audio chunks size of 10240 frames, with batches of 64 samples, the RMSProp optimizer with a learning rate of $1e^{-4}$, and 10 epochs in total. We report our results in \autoref{table:AdaptDPCLfine} and observe that using the Adaptive layer improves the Deep Clustering performances for the overall set and the males mixtures. 
+
 
 \begin{table}[h]
 \centering
@@ -1726,8 +1758,6 @@ DPCL 400 finetuned & 8.93 & 14.69 & \textbf{13.35} &\textbf{ 20.59} & 10.01 & 15
 \label{table:AdaptDPCLfine}
 \end{table}
 
-Finally, the back-end layer is added in output and the network is finetuned considering two cases where: the whole network is finetuned or only the Deep Clustering and the enhancement layers are finetuned. For reasons of memory limitation, during the finetuning phase, we use audio chunks size of 10240 frames, with batches of 64 samples, the RMSProp optimizer with a learning rate of $1e^{-4}$, and 10 epochs in total. We report our results in \autoref{table:AdaptDPCLfine} and observe that using the Adaptive layer improves the Deep Clustering performances for the overall set and the males mixtures. 
-
 \section{Source Contrastive Estimation improvements}
 
 In this section, we analyze the performances of the contributions previously mentioned. All along, we compare the results using spectrograms with the use of the Adaptive Layer. The Adaptive layer is plugged to the SCE network the same way as in \autoref{DPCLADAPT}.
@@ -1737,7 +1767,10 @@ And finally, we apply finetuning to the whole network.
 \subsection{Silent objective function, architecture and regularization}
 \label{silentloss}
 
-\begin{table}[h]
+Firstly, introduced in \autoref{contrib:silence}, we evaluate the performance of the new objective function not considering silent bins with different thresholds. The results are reported in Table \ref{table:SCEsilence} using hard k-means. Furthermore, instead of using the square root of the spectrogram magnitude plus a normalization between 0 and 1, we try to use the log magnitude with a mean and variance normalization like in Deep Clustering, but this approach does not lead to better results. In addition, we add one more BLSTM layer and see that it can lead to better SDR and SIR improvements. For the rest of the experiments using STFT spectrograms, \textbf{we use a network with 4 BLSTM layers, a silent threshold of $40dB$ and a square root with a 0-1 normalization}.
+
+
+\begin{table}[h!]
 \centering
 \begin{tabular}{l|c|c|c|c}
 SCE 100 & \multicolumn{2}{c|}{log / meanstd } & \multicolumn{2}{c}{sqrt / 01} \\ 
@@ -1747,20 +1780,20 @@ network / silence & SDR & SIR & SDR & SIR  \\
 3x600 & 7.35 & 14.07 & 7.38 & 14.10 \\ 
 \hline 
 \hline 
-3x600 20 $dB$ & 7.31 & 14.02 & 7.36 & 14.06 \\ 
-3x600 30 $dB$ & 7.31 & 14.02 & 7.42 & 14.13 \\ 
-3x600 40 $dB$ & 7.32 & 14.02 & \textbf{7.43} & \textbf{14.16} \\ 
+3x600 20 dB & 7.31 & 14.02 & 7.36 & 14.06 \\ 
+3x600 30 dB & 7.31 & 14.02 & 7.42 & 14.13 \\ 
+3x600 40 dB & 7.32 & 14.02 & \textbf{7.43} & \textbf{14.16} \\ 
 \hline 
 \hline 
 
-4x600 40 $dB$ & 7.34 & 14.02 & \cellcolor{green}\textbf{7.69} &
+4x600 40 dB & 7.34 & 14.02 & \cellcolor{green}\textbf{7.69} &
  \cellcolor{green}\textbf{14.47} \\ 
 \end{tabular}
-\caption[Evaluation of the silent objective function for the SCE method trained on spectrograms chunks of size 100]{Evaluation of the silent objective function for the SCE method trained on spectrograms chunks of 100 with different thresholds, normalizations and architectures - hard k-means is applied to cluster the embeddings and the models are trained on 2 speakers male/female mixtures}
+\caption[Evaluation of the silent objective function for the SCE method trained on spectrograms chunks of size 100]{Evaluation of the silent objective function for the SCE method trained on spectrograms chunks of 100 with different thresholds, normalizations and architectures - hard k-means is applied to cluster the embeddings and the models are trained on 2 speakers male/female mixtures.}
 \label{table:SCEsilence}
 \end{table}
 
-Firstly, introduced in \autoref{contrib:silence}, we evaluate the performance of the new objective function not considering silent bins with different thresholds. The results are reported in Table \ref{table:SCEsilence} using hard K-means. Furthermore, instead of using the square root of the spectrogram magnitude plus a normalization between 0 and 1, we try to use the log magnitude with a mean and variance normalization, but this approach does not lead to better results. In addition, we add one more BLSTM layer and see that it can lead to better SDR and SIR improvements. For the rest of the experiments using STFT spectrograms, \textbf{we use a network with 4 BLSTM layers, a silent threshold of $40dB$ and a square root with a 0-1 normalization}.
+In Table \ref{table:SCE100drop} recurrent dropout regularization is added to the BLSTM layers, but this does not lead to any improvement in terms of SDR and SIR measures.
 
 \begin{table}[h]
 \centering
@@ -1772,11 +1805,14 @@ dropout & SDR & SIR & SDR & SIR & SDR & SIR  \\
 0 & \textbf{4.29} & \textbf{9.75} & \textbf{7.69} & \textbf{14.47} & \textbf{5.89} & \textbf{12.23} \\ 
 0.2 & 3.34 & 8.69 &  6.55 & 13.17 & 4.75 & 10.91 \\ 
 \end{tabular}
-\caption[Evaluation of SCE method trained on spectrogram chunks of size 100 with and without recurrent dropout]{Evaluation of SCE method trained on spectrogram chunks of size 100 with and without recurrent dropout - hard K-means is used here to separate each speaker. We can observe that reccurent dropout does not improve the accuracy of the SCE method.}
+\caption[Evaluation of SCE method trained on spectrogram chunks of size 100 with and without recurrent dropout]{Evaluation of SCE method trained on spectrogram chunks of size 100 with and without recurrent dropout - hard k-means is used here to separate each speaker. We observe that recurrent dropout does not improve the accuracy of the SCE method.}
 \label{table:SCE100drop}
 \end{table}
 
-In Table \ref{table:SCE100drop} recurrent dropout regularization is added to the BLSTM layers, but this does not lead to any improvement in terms of SDR and SIR measures.
+
+In addition, we plug the pretrained front-end of the Adaptive layer previously introduced in \autoref{pre} to the Source Contrastive method. Like it is done with Deep Clustering, no functions are applied on the output of the front-end layer and these latter are normalized with a unit variance and a zero mean, furthermore, the chunk size is set to 10240 and the network is trained during 50 epochs.
+In \autoref{table:AdaptSCE100drop}, we report our results for different dropout values, architecture size and silence threshold for the loss function.
+
 
 \begin{table}[h!]
 \centering
@@ -1791,7 +1827,7 @@ Adapt SCE & network & dropout & SDR & SIR \\
 \cline{3-5}
  &  & 0.2 & 6.04 & 11.73 \\
 \hline
-\multirow{4}{*}{20 $dB$}  & \multirow{2}{*}{3x600} & 0 & \textbf{7.52} & \textbf{13.87} \\ 
+\multirow{4}{*}{20 dB}  & \multirow{2}{*}{3x600} & 0 & \textbf{7.52} & \textbf{13.87} \\ 
 \cline{3-5}
  &  & 0.2 & 7.00 & 13.03 \\
 \cline{2-5}
@@ -1799,23 +1835,20 @@ Adapt SCE & network & dropout & SDR & SIR \\
 \cline{3-5}
  &  & 0.2 & 6.93 & 12.86 \\
 \hline
-30 $dB$ & \multirow{2}{*}{3x600} & 0.0 & 6.42 & 12.18 \\
+30 dB & \multirow{2}{*}{3x600} & 0.0 & 6.42 & 12.18 \\
 \cline{1-1}\cline{3-5}
-40 $dB$ &  & 0.0 & 6.19 & 11.91 \\
+40 dB &  & 0.0 & 6.19 & 11.91 \\
 \end{tabular}
-\caption{Evaluation of the SCE method using the Adaptive layer with different architectures, loss function and dropout - hard k-means is used to separate each speaker - a mixture of 2 speakers with different gender and a chunk size of 10240 is used. We can see that with the Adaptive layer shorter architecture, no dropout and a threshold silence of $20dB$ leads to the best results}
+\caption[Evaluation of the SCE method using the Adaptive layer with different architectures, loss function and dropout values]{Evaluation of the SCE method using the Adaptive layer with different architectures, loss function and dropout values - hard k-means is used to separate each speaker - a mixture of 2 speakers with different gender and a chunk size of 10240 is used. We can see that with the Adaptive layer shorter architecture, no dropout and a threshold silence of $20dB$ leads to the best results}
 \label{table:AdaptSCE100drop}
 \end{table}
 
-In addition, we plug the pretrained front-end of the Adaptive layer previously introduced in \autoref{pre} to the Source Contrastive method. Like it is done with Deep Clustering, no functions are applied on the output of the front-end layer and these latter are normalized with a unit variance and a zero mean, furthermore, the chunk size is set to 10240 and the network is trained during 50 epochs.
-In \autoref{table:AdaptSCE100drop}, we report our results for different dropout values, architecture size and silence threshold for the loss function.
-
-\subsection{Soft K-means}
+\subsection{Soft k-means}
 \label{softkmeans}
 
-In this subsection, we evaluate the previously trained SCE models with spectrograms and with the Adaptive layer for different stiffness $\beta$ of the soft K-means algorithm introduced in \autoref{contrib:kmeans}. In \autoref{table:SCE100softrecap}, we report the best results we can get using soft K-means on models trained with chunks size of 100 frames with spectrograms and audio chunks of 10240 frames with the Adaptive layer. Detailled results are put in \autoref{table:SCE100softkmeans} with spectrograms and in \autoref{table:AdaptSCE100softkmeans} with the front-end of the Adaptive layer.
+In this subsection, we evaluate the previously trained SCE models with spectrograms and with the Adaptive layer for different stiffness $\beta$ of the soft k-means algorithm introduced in \autoref{contrib:kmeans}. In \autoref{table:SCE100softrecap}, we report the best results we can get using soft k-means on models trained with chunks size of 100 frames with spectrograms and audio chunks of 10240 frames with the Adaptive layer. Detailled results are put in \autoref{table:SCE100softkmeans} using spectrograms and in \autoref{table:AdaptSCE100softkmeans} using the front-end of the Adaptive layer.
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \begin{tabular}{l|c|c|c|c|c|c}
 method & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
@@ -1829,7 +1862,7 @@ Adapt SCE & \textbf{4.69} & \textbf{10.12} & 7.68 & 13.82 & 6.05 & 11.19 \\
 \label{table:SCE100softrecap}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
 \begin{tabular}{l|c|c|c|c|c|c}
 SCE 100 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{c}{all} \\ 
@@ -1837,15 +1870,15 @@ SCE 100 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline 
 hard & 3.72 & 9.75 & 7.69 & 14.47 & 5.89 & 12.23 \\ 
-hard - 20 $dB$ & 3.63 & 9.65 & 7.54 & 14.24 & 5.87 & 12.23 \\ 
+hard - 20 dB & 3.63 & 9.65 & 7.54 & 14.24 & 5.87 & 12.23 \\ 
 \hline 
 \hline 
-5 - 20 $dB$ & 4.04 & 8.14 & 7.72 & 13.22 & 6.13 & 10.90 \\ 
-10 - 20 $dB$ & \cellcolor{green}\textbf{4.29} & \cellcolor{green}9.75 & \cellcolor{green}\textbf{7.99} & \cellcolor{green}14.51 & \cellcolor{green}\textbf{6.38} & \cellcolor{green}12.29 \\ 
-15 - 20 $dB$ & 4.20 & 9.96 & 7.90 & 14.60 & 6.29 & 12.43 \\ 
-20 - 20 $dB$ & 4.14 & \textbf{10.02} & 7.85 & \textbf{14.61} & 6.22 & \textbf{12.46} \\ 
+5 - 20 dB & 4.04 & 8.14 & 7.72 & 13.22 & 6.13 & 10.90 \\ 
+10 - 20 dB & \cellcolor{green}\textbf{4.29} & \cellcolor{green}9.75 & \cellcolor{green}\textbf{7.99} & \cellcolor{green}14.51 & \cellcolor{green}\textbf{6.38} & \cellcolor{green}12.29 \\ 
+15 - 20 dB & 4.20 & 9.96 & 7.90 & 14.60 & 6.29 & 12.43 \\ 
+20 - 20 dB & 4.14 & \textbf{10.02} & 7.85 & \textbf{14.61} & 6.22 & \textbf{12.46} \\ 
 \end{tabular}
-\caption[Evaluation of SCE trained with spectrogram chunks of size 100 on different parameters for K-means]{Evaluation of SCE trained with spectrogram chunks of 100 frames for different parameters for the soft K-means algorithm. In green are the parameters leading to the best SDR improvement. We observe that soft K-means is not only adding differentiability to this clustering layer but is as well leading to better results than its hard version in terms of SDR and SIR improvements}
+\caption[Evaluation of SCE trained with spectrogram chunks of size 100 on different parameters for k-means]{Evaluation of SCE trained with spectrogram chunks of 100 frames for different parameters for the soft k-means algorithm. In green are the parameters leading to the best SDR improvement. We observe that soft k-means is not only adding differentiability to this clustering layer but is as well leading to better results than its hard version in terms of SDR and SIR improvements}
 \label{table:SCE100softkmeans}
 \end{table}
 
@@ -1858,15 +1891,15 @@ Adapt SCE & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
 hard   & 4.35 & 10.04 & 7.52 & 13.87 & 5.61 & 11.16 \\ 
-hard - 20 $dB$  & 4.39 & 10.06 & 7.34 & 13.68 & 5.66 & 11.22 \\
+hard - 20 dB  & 4.39 & 10.06 & 7.34 & 13.68 & 5.66 & 11.22 \\
 \hline
 \hline
-5 - 20 $dB$  & 3.39 & 5.94 & 7.38 & 12.34 & 3.63 & 6.04 \\ 
-10 - 20 $dB$  & 4.58 & 9.18 & \cellcolor{green}\textbf{7.68} & \cellcolor{green}13.82 & 5.50 & 9.43 \\ 
-15 - 20 $dB$ & 4.69 & 9.86 & 7.69 & 13.98 & 5.97 & 10.76 \\ 
-20 - 20 $dB$ & \cellcolor{green}\textbf{4.69} & \cellcolor{green}\textbf{10.12} & 7.68 & \textbf{14.02} & \cellcolor{green}\textbf{6.05} & \cellcolor{green}\textbf{11.19} \\ 
+5 - 20 dB  & 3.39 & 5.94 & 7.38 & 12.34 & 3.63 & 6.04 \\ 
+10 - 20 dB  & 4.58 & 9.18 & \cellcolor{green}\textbf{7.68} & \cellcolor{green}13.82 & 5.50 & 9.43 \\ 
+15 - 20 dB & 4.69 & 9.86 & 7.69 & 13.98 & 5.97 & 10.76 \\ 
+20 - 20 dB & \cellcolor{green}\textbf{4.69} & \cellcolor{green}\textbf{10.12} & 7.68 & \textbf{14.02} & \cellcolor{green}\textbf{6.05} & \cellcolor{green}\textbf{11.19} \\ 
 \end{tabular}
-\caption[Evaluation of SCE trained with the Adaptive layer and audio chunks of 10240 frames for different parameters for K-means]{Evaluation of SCE trained with the Adaptive layer and audio chunks of 10240 frames for different parameters for K-means. In green are the parameters leading to the best SDR improvement.}
+\caption[Evaluation of SCE trained with the Adaptive layer and audio chunks of 10240 frames for different parameters for k-means]{Evaluation of SCE trained with the Adaptive layer and audio chunks of 10240 frames for different parameters for k-means. In green are the parameters leading to the best SDR improvement.}
 \label{table:AdaptSCE100softkmeans}
 \end{table}
 
@@ -1875,7 +1908,7 @@ hard - 20 $dB$  & 4.39 & 10.06 & 7.34 & 13.68 & 5.66 & 11.22 \\
 
 In this subsection, we are evaluating the negative sampling methods introduced in \autoref{contrib:NS} for different parameters $K$ and $\mu$. In our study, we train the SCE network with random and KNN negative sampling methods only on the '\textbf{all}' training set since it is the most representative of the global performance of these methods.
 
-First, we compare the results with different $K$ and $\mu$ for the KNN and random negative sampling approaches with spectrograms chunks and with the Adaptive layer. The results are reported in \autoref{table:NS100} and it can be observe that the random negative sampling with $\mu=0.1$ and K=5 with spectrograms and K=10 with the Adaptive layer leads to the best results in terms of SDR improvements. As mentioned previously, a too high value for $\mu$ generates a strong negative sampling influence on the training phase and therefore bas results as it can be observed here with $\mu =0.5$. 
+First, we compare the results with different $K$ and $\mu$ for the KNN and random negative sampling approaches with spectrogram chunks and with the Adaptive layer. The results are reported in \autoref{table:NS100} and it can be observe that the random negative sampling with $\mu=0.1$ and K=5 with spectrograms and K=10 with the Adaptive layer leads to the best results in terms of SDR improvements. As mentioned previously, a too high value for $\mu$ generates a strong negative sampling influence on the training phase and therefore bas results as it can be observed here with $\mu =0.5$. 
 
 
 \begin{table}[h!]
@@ -1944,7 +1977,7 @@ method & $\mu$ & K & SDR & SIR \\
 \caption{Using the Adaptive layer with audio chunks of size 10240 and evaluated using the soft K-means algorithm with $\beta=10$}
 \label{table:ADAPTSCENS}
 \end{subtable}
-\caption{Evaluation of the SCE method using spectrograms (\ref{table:SCE100NS}) or the Adaptive Layer (\ref{table:ADAPTSCENS}) with Negative Sampling for a mixture of 2 speakers of same and different genders (corresponding to 'all') - random and K-Nearest Neighbors Negative Sampling methods are evaluated with different values for K and $\mu$ rate. The trained networks are evaluated using hard K-means algorithm for the separation. We observe that random negative sampling with K=5 with spectrograms and K=10 with the Adaptive layer is leading to the best results, we keep these specific trained models for the next phases.}
+\caption[Evaluation of the SCE method using spectrograms (\ref{table:SCE100NS}) or the Adaptive layer (\ref{table:ADAPTSCENS}) with negative sampling for a mixture of 2 speakers of same and different genders]{Evaluation of the SCE method using spectrograms (\ref{table:SCE100NS}) or the Adaptive layer (\ref{table:ADAPTSCENS}) with negative sampling for a mixture of 2 speakers of same and different genders (corresponding to 'all') - random and K Nearest Neighbors negative dampling methods are evaluated with different values for K and $\mu$ rate. The trained networks are evaluated using hard K-means algorithm for the separation. We observe that random negative sampling with K=5 with spectrograms and K=10 with the Adaptive layer is leading to the best results, we keep these specific trained models for the next phases.}
 \label{table:NS100}
 \end{table}
 
@@ -1961,13 +1994,13 @@ SCE rand & \multicolumn{2}{c}{all} \\
 kmeans $\beta$ - silence & SDR & SIR  \\ 
 \hline
 hard  & 6.15 & 12.48  \\ 
-hard - 20 $dB$  & 6.00 & 12.33 \\
+hard - 20 dB  & 6.00 & 12.33 \\
 \hline
 \hline
-5 - 20 $dB$  & 6.18 & 10.58 \\ 
-10 - 20 $dB$  & \cellcolor{green}\textbf{6.73} & \cellcolor{green}12.54 \\ 
-15 - 20 $dB$ & 6.67 & 12.80  \\ 
-20 - 20 $dB$ & 6.60 & \textbf{12.87}  \\ 
+5 - 20 dB  & 6.18 & 10.58 \\ 
+10 - 20 dB  & \cellcolor{green}\textbf{6.73} & \cellcolor{green}12.54 \\ 
+15 - 20 dB & 6.67 & 12.80  \\ 
+20 - 20 dB & 6.60 & \textbf{12.87}  \\ 
 \end{tabular}
 \caption{Using spectrograms chunks of size 100 and the random negative sampling method with K=5 and $\mu=0.1$}
 \label{table:SCE100NSbest}
@@ -1980,13 +2013,13 @@ Adapt SCE rand & \multicolumn{2}{c}{all} \\
 kmeans $\beta$ - silence & SDR & SIR  \\ 
 \hline
 hard  & 4.19 & 9.54  \\ 
-hard - 20 $dB$  & 3.87 & 9.65 \\
+hard - 20 dB  & 3.87 & 9.65 \\
 \hline
 \hline
-5 - 20 $dB$  & 5.07 & 8.07 \\ 
-10 - 20 $dB$  & \cellcolor{green}\textbf{6.25} & \cellcolor{green}11.27 \\ 
-15 - 20 $dB$ & 6.22 & 11.83  \\ 
-20 - 20 $dB$ & 6.18 & \textbf{12.03}  \\ 
+5 - 20 dB  & 5.07 & 8.07 \\ 
+10 - 20 dB  & \cellcolor{green}\textbf{6.25} & \cellcolor{green}11.27 \\ 
+15 - 20 dB & 6.22 & 11.83  \\ 
+20 - 20 dB & 6.18 & \textbf{12.03}  \\ 
 \end{tabular}
 \caption{Using the Adaptive layer with audio chunks of size 10240 and the random negative sampling method with K=10 and $\mu=0.1$}
 \end{subtable}
@@ -1998,7 +2031,7 @@ hard - 20 $dB$  & 3.87 & 9.65 \\
 \subsection{SCE and DANet combination}
 \label{DANET}
 
-In this subsection, we evaluate the performance of the method presented in \ref{contrib:danet} consisting in combining SCE and DANet methods. The final bests results obtained with this approach using spectrograms or the Adaptive layer are gathered in \autoref{table:SCE100DANETrecap}.
+In this subsection, we evaluate the performance of the method presented in \ref{contrib:danet} consisting in combining SCE and DANet methods. The final best results obtained with this approach using spectrograms or the Adaptive layer are gathered in \autoref{table:SCE100DANETrecap}.
 
 \begin{table}[h!]
 \centering
@@ -2054,15 +2087,15 @@ SCE DANet 100 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolu
 \hline 
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
-hard - 0.0  & 3.90 & 9.92 & 7.90 & 14.29 & 6.38 & 12.68 \\ 
-hard - 20 $dB$  & 3.52 & 9.53 & 7.47 & 13.94 & 5.95 & 12.27 \\
+hard & 3.90 & 9.92 & 7.90 & 14.29 & 6.38 & 12.68 \\ 
+hard - 20 dB  & 3.52 & 9.53 & 7.47 & 13.94 & 5.95 & 12.27 \\
 \hline
 \hline
-5 - 20 $dB$  & 1.43 & 2.75 & 7.93 & 12.75 & 5.34 & 8.48 \\ 
-10 - 20 $dB$  & 3.53 & 6.32 & \cellcolor{green}\textbf{8.43} & \cellcolor{green}14.49 & 7.05 & 12.23 \\ 
-15 - 20 $dB$ & 4.54 & 8.29 & 8.33 & \textbf{14.53} & 7.13 & 12.40 \\ 
-20 - 20 $dB$ & 4.97 & 9.30 & 8.25 & 14.49 & \cellcolor{green}\textbf{7.24} & \cellcolor{green}\textbf{12.74} \\ 
-25 - 20 $dB$ & \cellcolor{green}\textbf{5.08} & \cellcolor{green}\textbf{9.74} & 7.89 & 14.09 & 6.86 & 12.35 \\ 
+5 - 20 dB  & 1.43 & 2.75 & 7.93 & 12.75 & 5.34 & 8.48 \\ 
+10 - 20 dB  & 3.53 & 6.32 & \cellcolor{green}\textbf{8.43} & \cellcolor{green}14.49 & 7.05 & 12.23 \\ 
+15 - 20 dB & 4.54 & 8.29 & 8.33 & \textbf{14.53} & 7.13 & 12.40 \\ 
+20 - 20 dB & 4.97 & 9.30 & 8.25 & 14.49 & \cellcolor{green}\textbf{7.24} & \cellcolor{green}\textbf{12.74} \\ 
+25 - 20 dB & \cellcolor{green}\textbf{5.08} & \cellcolor{green}\textbf{9.74} & 7.89 & 14.09 & 6.86 & 12.35 \\ 
 \end{tabular}
 \caption[Evaluation of the best SCE DANet models using spectrograms for different parameters for the soft K-means algorithm]{Evaluation of the best SCE DANet models of \autoref{table:SCE100DANETarch} with different parameters for the soft K-means algorithm. In green are the parameters leading to the best SDR improvement.}
 \label{table:SCE100DANET}
@@ -2075,24 +2108,25 @@ Adapt SCE DANet & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multico
 \hline 
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
-hard - 0.0  & 5.46 & 11.30 & 8.81 & 15.45 & 8.38 & 14.83 \\ 
-hard - 20 $dB$  & 5.51 & 11.33 & 8.66 & 15.25 & 8.38 & 14.84 \\
+hard  & 5.46 & 11.30 & 8.81 & 15.45 & 8.38 & 14.83 \\ 
+hard - 20 dB  & 5.51 & 11.33 & 8.66 & 15.25 & 8.38 & 14.84 \\
 \hline
 \hline
-5 - 20 $dB$  & 4.66 & 7.93 & 8.70 & 14.46 & 5.18 & 8.19 \\ 
-10 - 20 $dB$  & 5.70 & 10.87 & 9.041 & 15.55 & 7.14 & 12.24 \\ 
-15 - 20 $dB$ & 5.780 & 10.38 & \cellcolor{green}\textbf{9.047} & \cellcolor{green}15.67 & 7.35 & 13.04 \\ 
-20 - 20 $dB$ & \cellcolor{green}\textbf{5.784} & \cellcolor{green}\textbf{11.51} & 9.03 & \textbf{15.69} & \cellcolor{green}\textbf{7.37} & \cellcolor{green}\textbf{13.27} \\ 
+5 - 20 dB  & 4.66 & 7.93 & 8.70 & 14.46 & 5.18 & 8.19 \\ 
+10 - 20 dB  & 5.70 & 10.87 & 9.041 & 15.55 & 7.14 & 12.24 \\ 
+15 - 20 dB & 5.780 & 10.38 & \cellcolor{green}\textbf{9.047} & \cellcolor{green}15.67 & 7.35 & 13.04 \\ 
+20 - 20 dB & \cellcolor{green}\textbf{5.784} & \cellcolor{green}\textbf{11.51} & 9.03 & \textbf{15.69} & \cellcolor{green}\textbf{7.37} & \cellcolor{green}\textbf{13.27} \\ 
 \end{tabular}
 \caption[Evaluation of the best SCE DANet models using the Adaptive layer for different parameters for the soft K-means algorithm]{Evaluation of the best SCE DANet models of \autoref{table:AdaptSCEDANETarch} with different parameters for the soft K-means algorithm. In green are the parameters leading to the best SDR improvement.}
 \label{table:AdaptSCEDANET}
 \end{table}
 
+\Needspace{}
 
-\subsection{Chunk size extension}
+\subsection{Chunk size finetuning}
 \label{ext}
 
-In this subsection we apply the method introduced by the second version of the Deep Clustering method consisting in finetuning the previous models with longer chunks in order to improve the performances of these latter. The models selected to be finetuned are the one in green presented in the previous subsections. These networks are finetuned using chunks size of 400 for the spectrograms and audio chunks of 30720 frames for the Adaptive layer. The RMSPRop optimizer is used with a learning rate of $1e^{-3}$ and the models are finetuned during 40000 steps. We report the best results for each method using spectrograms or the Adaptive layer as input in \autoref{table:SCE400recap}. We observe that the method consisting in combining SCE and DANet is leading to the best results in terms of SDR and SIR improvements.
+In this subsection we apply the method introduced by the second version of the Deep Clustering method consisting in finetuning the previous models with longer chunks in order to improve the performances of these latter. The models selected to be finetuned are the one in green presented in the previous subsections. These networks are finetuned using chunks size of 400 for the spectrograms and audio chunks of 30720 frames for the Adaptive layer. The RMSProp optimizer is used with a learning rate of $1e^{-3}$ and the models are finetuned during 40000 steps. We report the best results for each method using spectrograms or the Adaptive layer as input in \autoref{table:SCE400recap}. We observe that the method consisting in combining SCE and DANet is leading to the best results in terms of SDR and SIR improvements.
 
 \begin{table}[h!]
 \centering
@@ -2115,7 +2149,7 @@ Adapt SCE DANet 30720 & 6.63 & 13.53 & 9.84 & 18.11 & 7.79 & 15.16 \\
 \label{table:SCE400recap}
 \end{table}
 
-Detailed results for different parameters of the soft K-means algorithm are gathered in \autoref{table:SCE400} for the SCE method using spectrograms, in \autoref{table:AdaptSCEext} for the one using the Adaptive layer. The finetuning results of SCE combined with random negative sampling are shown in \autoref{table:AdaptSCErand400}. And finally the finetuning results of SCE combination with DANet method are reported in \autoref{table:SCEDANET400} and \autoref{table:AdaptSCEDANET400} using respectively spectrograms and the Adpative layer.
+Detailed results for different parameters of the soft k-means algorithm are gathered in \autoref{table:SCE400} for the SCE method using spectrograms, in \autoref{table:AdaptSCEext} for the one using the Adaptive layer. The finetuning results of SCE combined with random negative sampling are shown in \autoref{table:AdaptSCErand400}. And finally the finetuning results of SCE combination with DANet method are reported in \autoref{table:SCEDANET400} and \autoref{table:AdaptSCEDANET400} using respectively spectrograms and the Adaptive layer.
 
 \begin{table}[h!]
 \centering
@@ -2125,15 +2159,15 @@ SCE 400 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolumn{2}{
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
 hard  & 5.42 & 12.96 & 9.57 & 18.42 & 7.08 & 15.0 \\ 
-hard - 20 $dB$  & 5.12 & 12.81 & 9.10 & 17.97 & 6.65 & 14.66 \\
+hard - 20 dB  & 5.12 & 12.81 & 9.10 & 17.97 & 6.65 & 14.66 \\
 \hline
 \hline
-5 - 20 $dB$  & \cellcolor{green}\textbf{5.99} & \cellcolor{green}11.45 & \cellcolor{green}\textbf{9.98} & \cellcolor{green}16.90 & \cellcolor{green}\textbf{7.54} & \cellcolor{green}13.17 \\ 
-10 - 20 $dB$  & 5.87 & 12.89 & 9.95 & 18.50 & 7.45 & 14.98 \\ 
-15 - 20 $dB$ & 5.74 & 12.98 & 9.83 & \textbf{18.5}2 & 7.41 & 15.06 \\ 
-20 - 20 $dB$ & 5.66 & \textbf{12.99} & 9.76 & 18.50 & 7.32 & 15.06 \\ 
+5 - 20 dB  & \cellcolor{green}\textbf{5.99} & \cellcolor{green}11.45 & \cellcolor{green}\textbf{9.98} & \cellcolor{green}16.90 & \cellcolor{green}\textbf{7.54} & \cellcolor{green}13.17 \\ 
+10 - 20 dB  & 5.87 & 12.89 & 9.95 & 18.50 & 7.45 & 14.98 \\ 
+15 - 20 dB & 5.74 & 12.98 & 9.83 & \textbf{18.5}2 & 7.41 & 15.06 \\ 
+20 - 20 dB & 5.66 & \textbf{12.99} & 9.76 & 18.50 & 7.32 & 15.06 \\ 
 \end{tabular}
-\caption[Evaluation of the SCE method finetuned with longer spectrogram chunks of size 400]{Evaluation of the SCE method finetuned with longer spectrogram chunks of size 400 different soft K-means parameters.}
+\caption[Evaluation of the SCE method finetuned with longer spectrogram chunks of size 400]{Evaluation of the SCE method finetuned with longer spectrogram chunks of size 400 different soft k-means parameters.}
 \label{table:SCE400}
 \end{table}
 
@@ -2144,16 +2178,16 @@ Adapt SCE 30720 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multico
 \hline 
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
-hard - 0.0  & 4.51 & 11.05 & 7.23 & 13.19 & 6.35 & 13.24 \\ 
-hard - 20 $dB$  & 4.42 & 11.00 & 7.13 & 13.09 & 6.16 & 13.09 \\
+hard & 4.51 & 11.05 & 7.23 & 13.19 & 6.35 & 13.24 \\ 
+hard - 20 dB  & 4.42 & 11.00 & 7.13 & 13.09 & 6.16 & 13.09 \\
 \hline
 \hline
-5 - 20 $dB$  & 4.71 & 9.54 & 8.14 & 13.92 & 5.33 & 8.89 \\ 
-10 - 20 $dB$  & \cellcolor{green}\textbf{4.71} & \cellcolor{green}\textbf{10.89} & \cellcolor{green}\textbf{8.28} & \cellcolor{green}14.56 & 6.61 & 12.57 \\ 
-15 - 20 $dB$ & 4.66 & 11.08 & 8.27 & 14.62 & \cellcolor{green}\textbf{6.62} & \cellcolor{green}13.16 \\ 
-20 - 20 $dB$ & 4.64 & 11.08 & 8.26 & \textbf{14.64} & 6.59 & \textbf{13.31} \\ 
+5 - 20 dB  & 4.71 & 9.54 & 8.14 & 13.92 & 5.33 & 8.89 \\ 
+10 - 20 dB  & \cellcolor{green}\textbf{4.71} & \cellcolor{green}\textbf{10.89} & \cellcolor{green}\textbf{8.28} & \cellcolor{green}14.56 & 6.61 & 12.57 \\ 
+15 - 20 dB & 4.66 & 11.08 & 8.27 & 14.62 & \cellcolor{green}\textbf{6.62} & \cellcolor{green}13.16 \\ 
+20 - 20 dB & 4.64 & 11.08 & 8.26 & \textbf{14.64} & 6.59 & \textbf{13.31} \\ 
 \end{tabular}
-\caption[Evaluation of the SCE method finetuned with longer audio chunks of size 30720 using the Adaptive layer]{Evaluation of the SCE method finetuned with longer audio chunks of size 30720 using the Adaptive layer for different soft K-means parameters.}
+\caption[Evaluation of the SCE method finetuned with longer audio chunks of size 30720 using the Adaptive layer]{Evaluation of the SCE method finetuned with longer audio chunks of size 30720 using the Adaptive layer for different soft k-means parameters.}
 \label{table:AdaptSCEext}
 \end{table}
 
@@ -2167,13 +2201,13 @@ SCE rand 400 & \multicolumn{2}{c}{all} \\
 kmeans $\beta$ - silence & SDR & SIR  \\ 
 \hline
 hard  & 7.42 & 15.53  \\ 
-hard - 20 $dB$  & 7.42 & 15.53 \\
+hard - 20 dB  & 7.42 & 15.53 \\
 \hline
 \hline
-5 - 20 $dB$  & 7.67 & 12.73 \\ 
-10 - 20 $dB$  & \cellcolor{green}\textbf{8.01} & \cellcolor{green}15.34 \\ 
-15 - 20 $dB$ & 7.84 & 15.59  \\ 
-20 - 20 $dB$ & 7.73 & \textbf{15.65}  \\ 
+5 - 20 dB  & 7.67 & 12.73 \\ 
+10 - 20 dB  & \cellcolor{green}\textbf{8.01} & \cellcolor{green}15.34 \\ 
+15 - 20 dB & 7.84 & 15.59  \\ 
+20 - 20 dB & 7.73 & \textbf{15.65}  \\ 
 \end{tabular}
 \caption{Using spectrograms chunks of size 100}
 \label{table:SCErand400}
@@ -2186,13 +2220,13 @@ Adapt SCE rand 30720 & \multicolumn{2}{c}{all} \\
 kmeans $\beta$ - silence & SDR & SIR  \\ 
 \hline
 hard  & 6.50 & 13.61  \\ 
-hard - 20 $dB$  & 5.91 & 13.46 \\
+hard - 20 dB  & 5.91 & 13.46 \\
 \hline
 \hline
-5 - 20 $dB$  & 6.05 & 10.27 \\ 
-10 - 20 $dB$  & \cellcolor{green}\textbf{6.36} & \cellcolor{green}13.22 \\ 
-15 - 20 $dB$ & 6.21 & 13.60  \\ 
-20 - 20 $dB$ & 6.14 & \textbf{13.70}  \\ 
+5 - 20 dB  & 6.05 & 10.27 \\ 
+10 - 20 dB  & \cellcolor{green}\textbf{6.36} & \cellcolor{green}13.22 \\ 
+15 - 20 dB & 6.21 & 13.60  \\ 
+20 - 20 dB & 6.14 & \textbf{13.70}  \\ 
 \end{tabular}
 \caption{Using audio chunks of size 30720 with the Adaptive layer}
 \label{table:AdaptSCErand400}
@@ -2209,15 +2243,15 @@ SCE DANet 400 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \multicolu
 \hline 
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
-hard - 0.0  & 6.07 & 13.89 & 9.67 & 18.14 & 7.59 & 15.71 \\ 
-hard - 20 $dB$  & 5.51 & 13.64 & 8.94 & 17.59 & 6.92 & 15.27 \\
+hard  & 6.07 & 13.89 & 9.67 & 18.14 & 7.59 & 15.71 \\ 
+hard - 20 dB  & 5.51 & 13.64 & 8.94 & 17.59 & 6.92 & 15.27 \\
 \hline
 \hline
-5 - 20 $dB$  & 4.69 & 6.78 & 10.08 & 15.91 & 6.69 & 9.69 \\ 
-10 - 20 $dB$  & 6.75 & 11.69 & \cellcolor{green}\textbf{10.36} & \cellcolor{green}18.26  & 8.41 & 14.21 \\ 
-15 - 20 $dB$ & 7.04 & 12.89 & 10.19 & \textbf{18.33} & 8.56 & 15.05 \\ 
-20 - 20 $dB$ & \cellcolor{green}\textbf{7.12} & \cellcolor{green}\textbf{13.42} & 10.08 & 18.30 & \cellcolor{green}\textbf{8.58} & \cellcolor{green}\textbf{15.38} \\ 
-25 - 20 $dB$ & 6.98 & 13.42 & 9.95 & 18.20 & 8.29 & 15.09 \\ 
+5 - 20 dB  & 4.69 & 6.78 & 10.08 & 15.91 & 6.69 & 9.69 \\ 
+10 - 20 dB  & 6.75 & 11.69 & \cellcolor{green}\textbf{10.36} & \cellcolor{green}18.26  & 8.41 & 14.21 \\ 
+15 - 20 dB & 7.04 & 12.89 & 10.19 & \textbf{18.33} & 8.56 & 15.05 \\ 
+20 - 20 dB & \cellcolor{green}\textbf{7.12} & \cellcolor{green}\textbf{13.42} & 10.08 & 18.30 & \cellcolor{green}\textbf{8.58} & \cellcolor{green}\textbf{15.38} \\ 
+25 - 20 dB & 6.98 & 13.42 & 9.95 & 18.20 & 8.29 & 15.09 \\ 
 \end{tabular}
 \caption[Evaluation of SCE combined with DANet method finetuned with longer spectrogram chunks of size 400]{Evaluation of SCE combined with DANet method finetuned with longer spectrogram chunks of size 400 different soft K-means parameters.}\label{table:SCEDANET400}
 \end{table}
@@ -2229,14 +2263,14 @@ Adapt SCE DANet 30720 & \multicolumn{2}{c|}{m+m} & \multicolumn{2}{c|}{m+f} & \m
 \hline 
 kmeans $\beta$ - silence & SDR & SIR & SDR & SIR & SDR & SIR \\ 
 \hline
-hard - 0.0  & 6.42 & 13.75 & 9.69 & 18.08 & 7.53 & 14.15 \\ 
-hard - 20 $dB$  & 6.30 & 13.69 & 9.44 & 17.82 & 7.35 & 14.99 \\
+hard & 6.42 & 13.75 & 9.69 & 18.08 & 7.53 & 14.15 \\ 
+hard - 20 dB  & 6.30 & 13.69 & 9.44 & 17.82 & 7.35 & 14.99 \\
 \hline
 \hline
-5 - 20 $dB$  & 6.23 & 11.24 & 9.73 & 17.16 & 6.33 & 10.42 \\ 
-10 - 20 $dB$  & \cellcolor{green}\textbf{6.63} & \cellcolor{green}13.53 & \cellcolor{green}\textbf{9.84} & \cellcolor{green}18.11 & 7.79 & 14.61 \\ 
-15 - 20 $dB$ & 6.60 & 13.79 & 9.83 & 18.18 & \cellcolor{green}\textbf{7.79} & \cellcolor{green}15.16 \\ 
-20 - 20 $dB$ & 6.58 & \textbf{13.85} & 9.82 & \textbf{18.20} & 7.76 & \textbf{15.28} \\ 
+5 - 20 dB  & 6.23 & 11.24 & 9.73 & 17.16 & 6.33 & 10.42 \\ 
+10 - 20 dB  & \cellcolor{green}\textbf{6.63} & \cellcolor{green}13.53 & \cellcolor{green}\textbf{9.84} & \cellcolor{green}18.11 & 7.79 & 14.61 \\ 
+15 - 20 dB & 6.60 & 13.79 & 9.83 & 18.18 & \cellcolor{green}\textbf{7.79} & \cellcolor{green}15.16 \\ 
+20 - 20 dB & 6.58 & \textbf{13.85} & 9.82 & \textbf{18.20} & 7.76 & \textbf{15.28} \\ 
 \end{tabular}
 \caption[Evaluation of SCE combined of DANet method finetuned with longer audio chunks of size 30720 using the Adaptive layer]{Evaluation of SCE combined of DANet method finetuned with longer audio chunks of size 30720 using the Adaptive layer for different soft K-means parameters.}
 \label{table:AdaptSCEDANET400}
@@ -2271,7 +2305,7 @@ Adapt SCE DANet enh  & 8.36 & 13.87 & 11.06 & 17.58 & 9.26 & 14.76 \\
 \subsection{Finetuning}
 \label{finetuning}
 
-Finally, the whole networks are finetuned using the $L_2$ loss on the reconstructed audio signals. Here, for both spectrograms and the Adaptive layer, we only finetune the Deep Clustering and the enhancement layers. We do not finetune the front and back-end of the Adaptive layer because our experiments did not lead to better results when these latter were finetuned with the rest. For the fintuning phase we use the same training process as presented in \autoref{DPCLADAPT} and report our results in \autoref{table:finetune}.
+Finally, the whole networks are finetuned using the $L_2$ loss on the reconstructed audio signals. Here, for both spectrograms and the Adaptive layer, we only finetune the Deep Clustering and the enhancement layers. We do not finetune the front and back-end of the Adaptive layer because our experiments did not lead to better results when these latter were finetuned with the rest. For the finetuning phase we use the same training process as presented in \autoref{DPCLADAPT} and report our results in \autoref{table:finetune}.
 
 \begin{table}[h]
 \begin{tabular}{l|c|c|c|c|c|c}
@@ -2295,12 +2329,12 @@ Adapt SCE DANet finetuned & 9.65 & 15.47 & 11.95 & 18.95 & 9.94 & 15.49 \\
 
 
 \section{Global results}
-
+\label{res:glo}
 In this section, we report all our results concerning the multi-speaker separation problem in \autoref{global}.
 We can observe that the SCE method with negative sampling improves the current state of the art for the multi-speaker separation problem considering a mixture of 2 random speakers by \textbf{1.58 dB}. Our implementation of Deep Clustering reaches a good accuracy of\textbf{ 13.35 dB} of SDR improvement, that is 1.35 dB higher than the original paper \cite{DPCLV2}. Finally, for a mixture of 2 males we improved the state of the art by \textbf{1.35 dB}.
 
-Moreover, to evaluate the generalization efficiency of these trained models we measure their performance on the out-of-set speaker set (set of speakers these networks were not trained on) and report the results in \autoref{globalout}.
-g
+Moreover, to evaluate the generalization efficiency of these trained models we measure their performance on the out-of-set speaker set (set of speakers the networks were not trained on) and report the results in \autoref{globalout}. We can observe that the best models are robust to unseen data and just lose around 0.9 dB of SDR improvement compared to the data they were trained on.
+
 \begin{table}[h]
 \centering
 \begin{tabular}{l|c|c|c|c|c|c}
@@ -2324,7 +2358,7 @@ Adapt SCE DANet finetuned & 9.65 & 15.47 & 11.95 & 18.95 & 9.94 & 15.49 \\
 \hline
 \hline
 IBM filters & 12.38 & 21.20 & 13.77 & 22.64 & 13.32 & 22.02 \\ 
-WF filters & 12.76 & 19.98 & 13.77 & 22.64 & 13.32 & 22.02 \\ 
+WF filters & 12.76 & 19.98 & 14.32 & 21.23 & 14.02 & 21.53 \\ 
 
 \end{tabular}
 \caption{Summary of the evaluation of all the finetuned methods}
@@ -2357,21 +2391,25 @@ Adapt SCE DANet finetuned & 8.85 & 14.15 & 9.74 & 15.86 & 8.97 & 13.84 \\
 
 \chapter{Further Work and Discussion}
 
-We have seen that using the proposed Adaptive layer instead of spectrograms can lead to better results in some cases but still struggles to separate more than a 2 speakers mixture. Trying many other architecture possibilities for the Adaptive layer is one way to go to improve the reconstruction error. This reconstruction error is mostly due to the maxpooling layer that makes the front-end losing some information when computing the latent representation of the mixture.
+We have seen that using the proposed Adaptive layer instead of spectrograms can lead to better results in some cases but this latter still struggles to separate more than a 2 speakers mixture. Trying many other architecture possibilities for the Adaptive layer is one way to go to improve the reconstruction error. This reconstruction error is mostly due to the maxpooling layer that makes the front-end losing some information when computing the latent representation of the mixture.
+
 Another interesting path would be to construct such a network for multiple channel in input.
 An approach that could lead to better performances using spectrograms in input would be to use complex masks like described in \cite{OverviewSSDL} and used in \cite{ImageSS}. Indeed, with such an approach the phase of the complex spectrogram is as well kept and since the whole information is fed to the deep neural architecture, this might lead to a better interpretation to produce more accurate embeddings and thus better separation.
 
-Dilated Convolutional Neural Networks have as well shown to have very good results on Image Processing, and therefore using them before the BLSTM layers, like in \cite{ImageSS}, could extract some interesting features that the BLSTM are missing when outputting the (t,f) embeddings.
 
-Since many other works on the multi speaker separation problem are using the World Street Journal (WSJ) dataset in order to train and evaluate there models, extending our work to be able to process this dataset would be good to compare it to many other methods.
+Furthermore, we have shown that the enhanced and finetuned version of SCE can lead to better results for 2 speakers mixtures compared to the previous state of the art SDR improvements. One interesting extension of this study is to apply these methods for mixtures of more than 2 speakers.
+
+Since dilated convolutional neural networks have shown to have very good results on image processing, using them before the BLSTM layers, like in \cite{ImageSS}, could extract some interesting features that the BLSTM are missing when outputting the embeddings.
+
+Since many other works on the multi-speaker separation problem are using the World Street Journal (WSJ) dataset in order to train and evaluate there models, extending our work to be able to process this dataset would be good to compare it to many other methods.
 
 One drawback of our approach is due to all the training phases necessary to converge to decent results in terms of SDR and SIR improvements. Another approach with the Adaptive layer would be not to apply any pretraining process but train it in end-to-end way directly with the source separation network. For instance, DANet \cite{DANet} proposes a architecture capable to directly infer separated sources and therefore can be trained directly with Adaptive layer as a whole.
 
 \chapter{Conclusion}
 
 To conclude, we have shown in this study that using an architecture such as the presented Adaptive layer can enhance the results of current state of the art methods for the multi speaker separation problem involving 2 speakers. Even though this layer is still not extendable to more than 2 speakers, these results are promising and further research in this direction could lead to a new network capable of fully reconstructing separated signals for many speakers.
-We have shown as well that the Source Contrastive Estimation can significantly be improved using methods such as combining it with the DANet objective function, using negative sampling and using techniques brought by the Deep Clustering method.
-We guess that a good extension of this work would be not to pretrain the Adaptive Layer like we did in this study but use it directly in an end-to-end way. A good approach would be to apply it to DANet \cite{DANet} network and train the whole network in one global end-to-end step, this might lead to a better latent representation for the multi speaker separation problem.
+We have shown as well that the Source Contrastive Estimation can significantly be improved using methods such as combining it with the DANet objective function, using negative sampling and using techniques brought by the Deep Clustering method. These improvements are leading to a new state of the art of +11.59 dB in terms of SDR improvement for 2 speakers mixtures.
+We guess that a good extension of this work would be not to pretrain the Adaptive Layer like it is done this study but use it directly in an end-to-end way. A good approach would be to apply it to DANet \cite{DANet} network and train the whole network in one global end-to-end step, this might lead to a better latent representation for the multi-speaker separation problem.
 
 
 
